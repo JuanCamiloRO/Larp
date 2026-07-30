@@ -7,9 +7,12 @@ import Profile from './pages/Profile.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Settings from './pages/Settings.jsx';
 import SignUp from './pages/SignUp.jsx';
+import Navbar from './components/Navbar.jsx';
 
 export default function App() {
   return (
+    <>
+    <div>
     <Routes>
       <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -19,5 +22,8 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} /> 
     </Routes>
+    </div>
+    <Navbar/>
+    </>
   );
 }

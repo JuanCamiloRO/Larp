@@ -1,4 +1,3 @@
-import { useWorkout} from '../hooks/useWorkout';
 import { Link } from 'react-router-dom';
 
 const IMAGE_BASE_URL = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
@@ -34,56 +33,59 @@ function formatDuration(start, end) {
   return `${minutes} min`;
 }
 
-export default function ExerciseDisplay() {
-    const { workouts, loading, error } = useWorkout();
-    
-      if (loading) return <div style={{ color: 'white', padding: '16px' }}>Loading...</div>;
-      if (error) return <div style={{ color: 'red', padding: '16px' }}>Error: {error}</div>;
-    
-      return (
-        <div>
-    
-          {workouts.map((workout) => {
-            const exerciseGroups = groupSetsByExercise(workout.workout_sets || []);
-            const totalSets = workout.workout_sets?.length || 0;
-            const totalVolume = workout.workout_sets?.reduce(
-              (sum, s) => sum + (Number(s.weight) || 0) * (Number(s.reps) || 0),
-              0
-            );
-    
-            return (
-              <div className="workout-card" key={workout.id}>
-                <div style={{ marginBottom: '10px' }}>
-                  <p style={{ color: 'white', fontWeight: 600, margin: 0 }}>
-                    {workout.name?.toUpperCase()} · {formatDate(workout.started_at)}
-                  </p>
-                  <p style={{ color: '#8e8e93', fontSize: '13px', margin: 0 }}>
-                    {formatDuration(workout.started_at, workout.ended_at)} · {totalSets} sets · {totalVolume}kg volume
+export default function ExerciseDisplay({ workouts, loading, error, showAuthor = false }) {
+  if (loading) return <div style={{ color: 'white', padding: '16px' }}>Loading...</div>;
+  if (error) return <div style={{ color: 'red', padding: '16px' }}>Error: {error}</div>;
+  if (!workouts || workouts.length === 0) {
+    return <div style={{ color: '#8e8e93', padding: '16px' }}>No workouts yet.</div>;
+  }
+
+  return (
+    <div>
+      {workouts.map((workout) => {
+        const exerciseGroups = groupSetsByExercise(workout.workout_sets || []);
+        const totalSets = workout.workout_sets?.length || 0;
+        const totalVolume = workout.workout_sets?.reduce(
+          (sum, s) => sum + (Number(s.weight) || 0) * (Number(s.reps) || 0),
+          0
+        );
+
+        return (
+          <div className="workout-card" key={workout.id}>
+            <div style={{ marginBottom: '10px' }}>
+              {showAuthor && workout.profiles?.username && (
+                <Link to={`/profile/${workout.user_id}`} style={{ color: '#4f9dff', fontSize: '13px', textDecoration: 'none' }}>
+                  @{workout.profiles.username}
+                </Link>
+              )}
+              <p style={{ color: 'white', fontWeight: 600, margin: 0 }}>
+                {workout.name?.toUpperCase()} · {formatDate(workout.started_at)}
+              </p>
+              <p style={{ color: '#8e8e93', fontSize: '13px', margin: 0 }}>
+                {formatDuration(workout.started_at, workout.ended_at)} · {totalSets} sets · {totalVolume}kg volume
+              </p>
+            </div>
+
+            {exerciseGroups.map((group, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 0' }}>
+                {group.image && (
+                  <img
+                    src={resolveImageUrl(group.image)}
+                    alt={group.name}
+                    style={{ width: '36px', height: '36px', borderRadius: '6px', objectFit: 'cover' }}
+                  />
+                )}
+                <div>
+                  <p style={{ color: 'white', margin: 0, fontSize: '14px' }}>{group.name}</p>
+                  <p style={{ color: '#8e8e93', margin: 0, fontSize: '12px' }}>
+                    {group.sets.length} sets · {group.sets.map((s) => `${s.weight}kg x ${s.reps}`).join(', ')}
                   </p>
                 </div>
-    
-                {exerciseGroups.map((group, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 0' }}>
-                    {group.image && (
-                      <img
-                        src={resolveImageUrl(group.image)}
-                        alt={group.name}
-                        style={{ width: '36px', height: '36px', borderRadius: '6px', objectFit: 'cover' }}
-                      />
-                    )}
-                    <div>
-                      <p style={{ color: 'white', margin: 0, fontSize: '14px' }}>{group.name}</p>
-                      <p style={{ color: '#8e8e93', margin: 0, fontSize: '12px' }}>
-                        {group.sets.length} sets · {group.sets.map((s) => `${s.weight}kg x ${s.reps}`).join(', ')}
-                      </p>
-                    </div>
-                  </div>
-                ))}
               </div>
-            );
-          })}
-    
-        </div>
-      );
-
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
 }

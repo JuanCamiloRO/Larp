@@ -1,12 +1,14 @@
-import ExerciseDisplay from '../components/ExerciseDisplay.jsx';
-import FollowCard from '../components/FollowCard.jsx';
-export default function Home() {
-    return (
+import { useFeedWorkouts } from '../hooks/useFeedWorkouts';
+import ExerciseDisplay from '../components/ExerciseDisplay';
+
+function Home() {
+  const { workouts, loading, error } = useFeedWorkouts();
+
+  return (
     <>
-    <h1>Home</h1>
-    <button onClick={() => window.location.href = '/workout'}>New Workout</button>
-    <ExerciseDisplay />
-    <FollowCard />
-  </>
-    );
+      <ExerciseDisplay workouts={workouts} loading={loading} error={error} showAuthor />
+    </>
+  );
 }
+
+export default Home;
