@@ -1,4 +1,0 @@
-[33me6e92be[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m fixed dependencies
-[33mc5f3230[m Remove npm lockfile, keep pnpm as sole package manager
-[33mfb36c26[m Update pnpm lockfile
-[33ma6bb9e3[m Initial Larp build

@@ -1,8 +1,12 @@
+import ExerciseDisplay from '../components/ExerciseDisplay.jsx';
+import FollowCard from '../components/FollowCard.jsx';
 export default function Home() {
-  return (
-    <div className="screen">
-      <h1>Welcome to the Home Page</h1>
-      <p>This is a simple home page for the social network.</p>
-    </div>
-  );
+    return (
+    <>
+    <h1>Home</h1>
+    <button onClick={() => window.location.href = '/workout'}>New Workout</button>
+    <ExerciseDisplay />
+    <FollowCard />
+  </>
+    );
 }
