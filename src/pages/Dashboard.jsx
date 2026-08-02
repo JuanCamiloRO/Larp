@@ -1,7 +1,7 @@
 import { useProfile } from "../hooks/useProfile"
 import Graph from "../components/Graph"
 import ExerciseDisplay from "../components/ExerciseDisplay"
-import MuscleHeatmap from "../components/MuscleHeatMap"
+import MuscleHeatmap from "../components/MuscleHeatmap"
 import "../style.css"
 import { useWorkout } from "../hooks/useWorkout"
 
