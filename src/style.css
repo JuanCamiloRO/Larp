@@ -1037,3 +1037,46 @@ button {
   font-weight: 700;
   color: var(--accent);
 }
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.leaderboard-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+}
+
+.leaderboard-row.you {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.leaderboard-rank {
+  width: 32px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.leaderboard-1rm {
+  font-weight: 800;
+  color: var(--accent);
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.leaderboard-you-tag {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 12px;
+}

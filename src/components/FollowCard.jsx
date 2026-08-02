@@ -1,33 +1,57 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../hooks/useAuth';
 import { useRandomProfiles } from '../hooks/useRandomProfiles';
 
 export default function FollowCard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { suggestions, loading } = useRandomProfiles(5);
   const [following, setFollowing] = useState({});
   const [hidden, setHidden] = useState({});
-  console.log(suggestions);
 
-  async function toggleFollow(targetId) {
-  const isFollowing = following[targetId];
+  useEffect(() => {
+    if (!user || suggestions.length === 0) return;
+    checkExistingFollows();
+  }, [suggestions, user]);
 
-  if (!isFollowing) {
-    await supabase.from('follows').insert({
-      follower_id: user.id,
-      following_id: targetId,
-    });
-  } else {
-    await supabase
+  async function checkExistingFollows() {
+    const ids = suggestions.map((u) => u.id);
+    const { data, error } = await supabase
       .from('follows')
-      .delete()
+      .select('following_id')
       .eq('follower_id', user.id)
-      .eq('following_id', targetId);
+      .in('following_id', ids);
+
+    if (!error && data) {
+      const map = {};
+      data.forEach((row) => {
+        map[row.following_id] = true;
+      });
+      setFollowing((prev) => ({ ...prev, ...map }));
+    }
   }
 
-  setFollowing((prev) => ({ ...prev, [targetId]: !isFollowing }));
-}
+  async function toggleFollow(targetId) {
+    const wasFollowing = following[targetId];
+
+    setFollowing((prev) => ({ ...prev, [targetId]: !wasFollowing }));
+
+    const { error } = wasFollowing
+      ? await supabase
+          .from('follows')
+          .delete()
+          .eq('follower_id', user.id)
+          .eq('following_id', targetId)
+      : await supabase
+          .from('follows')
+          .insert({ follower_id: user.id, following_id: targetId });
+
+    if (error) {
+      setFollowing((prev) => ({ ...prev, [targetId]: wasFollowing }));
+    }
+  }
 
   function dismiss(targetId) {
     setHidden((prev) => ({ ...prev, [targetId]: true }));
@@ -63,9 +87,15 @@ export default function FollowCard() {
             className="follow-avatar"
             src={u.avatar_url || '/default-avatar.png'}
             alt={u.name}
+            onClick={() => navigate(`/profile/${u.id}`)}
+            style={{ cursor: 'pointer' }}
           />
 
-          <div className="follow-info">
+          <div
+            className="follow-info"
+            onClick={() => navigate(`/profile/${u.id}`)}
+            style={{ cursor: 'pointer' }}
+          >
             <span className="follow-name">{u.name}</span>
             <span className="follow-handle">@{u.username}</span>
           </div>
