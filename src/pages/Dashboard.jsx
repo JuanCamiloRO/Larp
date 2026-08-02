@@ -1,6 +1,7 @@
 import { useProfile } from "../hooks/useProfile"
 import Graph from "../components/Graph"
 import ExerciseDisplay from "../components/ExerciseDisplay"
+import MuscleHeatmap from "../components/MuscleHeatMap"
 import "../style.css"
 import { useWorkout } from "../hooks/useWorkout"
 
@@ -11,7 +12,7 @@ export default function Dashboard() {
   const workoutCount = workouts?.length || 0;
 
   return (
-    <>
+    <div className="dashboard-page">
       <div className="profile-header">
         <div className="profile-top">
           <img
@@ -41,13 +42,14 @@ export default function Dashboard() {
           {profile?.bio && <p className="profile-bio">{profile.bio}</p>}
         </div>
 
-        <Graph />
       </div>
 
       <div className="dashboard-workouts">
         <h2 className="dashboard-section-title">Workouts</h2>
         <ExerciseDisplay workouts={workouts} loading={workoutsLoading} error={workoutsError} />
       </div>
-    </>
+      <MuscleHeatmap />
+    </div>
+    
   )
 }

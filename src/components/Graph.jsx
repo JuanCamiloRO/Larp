@@ -75,9 +75,9 @@ function Graph() {
                 align: 'top',
                 font: { weight: 'bold', size: 11 },
                 formatter: (value) => {
-                  if (metrica === 'volumen') return `${value} kg`;
+                  if (metrica === 'volume') return `${value} kg`;
                   if (metrica === 'sets') return `${value} sets`;
-                  if (metrica === 'duracion') return `${value} min`;
+                  if (metrica === 'duration') return `${value} min`;
                   return value;
                 },
               },
@@ -105,14 +105,14 @@ function Graph() {
 
       <div className="chart-buttons">
         <button
-          className={metrica === 'duracion' ? 'active' : ''}
-          onClick={() => setMetrica('duracion')}
+          className={metrica === 'duration' ? 'active' : ''}
+          onClick={() => setMetrica('duration')}
         >
           Duración
         </button>
         <button
-          className={metrica === 'volumen' ? 'active' : ''}
-          onClick={() => setMetrica('volumen')}
+          className={metrica === 'volume' ? 'active' : ''}
+          onClick={() => setMetrica('volume')}
         >
           Volumen
         </button>

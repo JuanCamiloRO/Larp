@@ -1,9 +1,19 @@
 // components/NavBar.jsx
 import { NavLink } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Home, BarChart2, PlusCircle, Dumbbell, User } from 'lucide-react';
+import { useWorkoutContext } from '../context/WorkoutContext.jsx';
 
 export default function NavBar() {
+  const { isActive } = useWorkoutContext();
+
   return (
+    <>
+    {isActive && (
+        <Link to="/workout" className="active-workout-banner">
+          🏋️ Workout in progress — tap to resume
+        </Link>
+      )}
     <nav className="bottom-nav">
       <NavLink to="/" className="nav-item" end>
         <Home size={24} />
@@ -29,5 +39,6 @@ export default function NavBar() {
         <span>Profile</span>
       </NavLink>
     </nav>
+    </>
   );
 }

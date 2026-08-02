@@ -2,20 +2,26 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../hooks/useAuth';
+import { useWorkoutContext } from '../context/WorkoutContext';
 import ExercisePicker from '../components/ExercisePicker';
 import ExerciseRankBadge from '../components/ExerciseRankBadge';
 import PRToast from '../components/PRToast';
 import WorkoutSummary from '../components/WorkoutSummary';
+import SessionMuscleMap from '../components/SessionMuscleMap';
 
 const IMAGE_BASE_URL = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
 
 export default function Workout() {
-  const { user } = useAuth();
-  const [workoutId, setWorkoutId] = useState(null);
-  const [name, setName] = useState('');
-  const [startedAt, setStartedAt] = useState(null);
-  const [endedAt, setEndedAt] = useState(null);
-  const [exercises, setExercises] = useState([]);
+  const { user, loading: authLoading } = useAuth();
+  const {
+    workoutId, setWorkoutId,
+    name, setName,
+    startedAt, setStartedAt,
+    endedAt, setEndedAt,
+    exercises, setExercises,
+    resetWorkout,
+  } = useWorkoutContext();
+
   const [showPicker, setShowPicker] = useState(false);
   const [finished, setFinished] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -204,8 +210,7 @@ export default function Workout() {
 
       setSummary({ totalSets, totalVolume, minutes, ranks: ranks || [] });
     }
-    setWorkoutId(null);
-    setExercises([]);
+    resetWorkout();
   }
 
   async function deleteWorkout() {
@@ -213,9 +218,12 @@ export default function Workout() {
       await supabase.from('workout_sets').delete().eq('workout_id', workoutId);
       await supabase.from('workouts').delete().eq('id', workoutId);
     }
-    setWorkoutId(null);
-    setExercises([]);
+    resetWorkout();
     setConfirmingDelete(false);
+  }
+
+  if (authLoading || !user) {
+    return <div style={{ color: 'white', padding: '16px' }}>Loading...</div>;
   }
 
   return (
@@ -223,6 +231,8 @@ export default function Workout() {
       <h1 style={{ color: 'white' }}>Workout</h1>
 
       <PRToast toast={toast} />
+
+      <SessionMuscleMap exercises={exercises} />
 
       {exercises.map((ex, exIndex) => (
         <div className="workout-card" key={ex.id}>
@@ -236,7 +246,7 @@ export default function Workout() {
                 />
               )}
               <span className="exercise-name">{ex.name}</span>
-              <ExerciseRankBadge exerciseId={ex.id} userId={user.id} />
+              <ExerciseRankBadge exerciseId={ex.id} userId={user?.id} />
             </div>
             <button
               onClick={() => removeExercise(exIndex)}
@@ -304,10 +314,7 @@ export default function Workout() {
           <button className="finish-btn" onClick={() => { setFinished(true); setEndedAt(new Date()); }}>
             Finish Workout
           </button>
-          <button
-            onClick={() => setConfirmingDelete(true)}
-            style={{ background: '#2c2c2e', color: '#ff453a', border: 'none', borderRadius: '12px', padding: '16px', fontWeight: 700, cursor: 'pointer' }}
-          >
+          <button className="danger-btn" onClick={() => setConfirmingDelete(true)}>
             Delete
           </button>
         </div>
@@ -316,7 +323,13 @@ export default function Workout() {
       {finished && (
         <div className="finish-confirmation">
           <p>Are you sure you want to finish the workout?</p>
-          <input type="text" placeholder="Enter workout name" onChange={(e) => setName(e.target.value)} />
+          <input
+            className="input-field"
+            type="text"
+            placeholder="Enter workout name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
           <button onClick={() => { finishWorkout(); setFinished(false); }}>Finish workout</button>
           <button onClick={() => setFinished(false)}>No</button>
         </div>

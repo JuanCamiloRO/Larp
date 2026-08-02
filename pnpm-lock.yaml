@@ -26,6 +26,9 @@ importers:
       react:
         specifier: ^19.2.8
         version: 19.2.8
+      react-body-highlighter:
+        specifier: ^2.0.5
+        version: 2.0.5(react@19.2.8)
       react-chartjs-2:
         specifier: ^5.3.1
         version: 5.3.1(chart.js@4.5.1)(react@19.2.8)
@@ -1690,6 +1693,12 @@ packages:
   pretty-bytes@6.1.1:
     resolution: {integrity: sha512-mQUvGU6aUFQ+rNvTIAcZuWGRT9a6f6Yrg9bHs4ImKF+HZCEK+plBvnAZYSIQztknZF2qnzNtr6F8s0+IuptdlQ==}
     engines: {node: ^14.13.1 || >=16.0.0}
+
+  react-body-highlighter@2.0.5:
+    resolution: {integrity: sha512-yt37177vKIc+8TGxQw//G/3ah2aw/3E0g1oDt4N+46fMLVZ9BSelhc9S7kiwEkJRvYc3RyUSr9453uMJnvtxRg==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      react: '>=16'
 
   react-chartjs-2@5.3.1:
     resolution: {integrity: sha512-h5IPXKg9EXpjoBzUfyWJvllMjG2mQ4EiuHQFhms/AjUm0XSZHhyRy2xVmLXHKrtcdrPO4mnGqRtYoD0vp95A0A==}
@@ -3786,6 +3795,10 @@ snapshots:
   pretty-bytes@5.6.0: {}
 
   pretty-bytes@6.1.1: {}
+
+  react-body-highlighter@2.0.5(react@19.2.8):
+    dependencies:
+      react: 19.2.8
 
   react-chartjs-2@5.3.1(chart.js@4.5.1)(react@19.2.8):
     dependencies:
