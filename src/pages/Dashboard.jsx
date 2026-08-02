@@ -2,6 +2,7 @@ import { useProfile } from "../hooks/useProfile"
 import Graph from "../components/Graph"
 import ExerciseDisplay from "../components/ExerciseDisplay"
 import MuscleHeatmap from "../components/MuscleHeatmap"
+import EditTopLifts from "../components/EditTopLifts"
 import "../style.css"
 import { useWorkout } from "../hooks/useWorkout"
 
@@ -49,7 +50,9 @@ export default function Dashboard() {
         <ExerciseDisplay workouts={workouts} loading={workoutsLoading} error={workoutsError} />
       </div>
       <MuscleHeatmap />
+      <EditTopLifts />
     </div>
+    
     
   )
 }

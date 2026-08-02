@@ -8,6 +8,7 @@ import Login from './pages/Login.jsx';
 import Profile from './pages/Profile.jsx';
 import PublicProfile from './pages/PublicProfile.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import Ranks from './pages/Ranks.jsx';
 import Settings from './pages/Settings.jsx';
 import SignUp from './pages/SignUp.jsx';
 import Navbar from './components/Navbar.jsx';
@@ -28,6 +29,7 @@ export default function App() {
       <Route path="/profile/:userId" element={<PublicProfile />} />
       <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
       <Route path="/login" element={<Login />} />
+      <Route path="/ranks" element={<ProtectedRoute><Ranks /></ProtectedRoute>} />
       <Route path="/signup" element={<SignUp />} /> 
     </Routes>
     

@@ -1,11 +1,7 @@
+// components/ExerciseRankBadge.jsx
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
-
-const TIERS = {
-  larp_baby: { label: 'Larp Baby', icon: '/ranks/bronze.png' },
-  larpy: { label: 'Larpy', icon: '/ranks/diamond.png' },
-  master_larp: { label: 'Master Larp', icon: '/ranks/unreal.png' },
-};
+import { TIERS } from '../lib/rankTiers';
 
 export default function ExerciseRankBadge({ exerciseId, userId }) {
   const [rank, setRank] = useState(null);
@@ -20,7 +16,6 @@ export default function ExerciseRankBadge({ exerciseId, userId }) {
         .maybeSingle();
 
       if (data) setRank(data);
-      console.log('Rank fetch:', { exerciseId, userId, data });
     }
     fetchRank();
   }, [exerciseId, userId]);
@@ -28,6 +23,7 @@ export default function ExerciseRankBadge({ exerciseId, userId }) {
   if (!rank) return null;
 
   const tier = TIERS[rank.rank];
+  if (!tier) return null;
 
   return (
     <span className="exercise-rank-badge">
