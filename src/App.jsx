@@ -14,6 +14,7 @@ import Settings from './pages/Settings.jsx';
 import SignUp from './pages/SignUp.jsx';
 import Navbar from './components/Navbar.jsx';
 import WorkoutProvider from './context/WorkoutContext.jsx';
+import BodyScan from "./components/BodyScan";
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
       <Route path="/nutrition" element={<ProtectedRoute><Nutrition /></ProtectedRoute>} />
       <Route path="/ranks" element={<ProtectedRoute><Ranks /></ProtectedRoute>} />
       <Route path="/signup" element={<SignUp />} /> 
+      <Route path="/body-scan" element={<ProtectedRoute><BodyScan /></ProtectedRoute>} />
     </Routes>
     
     </div>
