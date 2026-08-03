@@ -3,6 +3,7 @@ import Graph from "../components/Graph"
 import ExerciseDisplay from "../components/ExerciseDisplay"
 import MuscleHeatmap from "../components/MuscleHeatmap"
 import EditTopLifts from "../components/EditTopLifts"
+import BodyScan from "../components/BodyScan"
 import "../css/style.css"
 import { useWorkout } from "../hooks/useWorkout"
 import { useAuth } from "../hooks/useAuth"
@@ -53,6 +54,7 @@ export default function Dashboard() {
       </div>
       <MuscleHeatmap />
       <EditTopLifts />
+      <BodyScan />
     </div>
     
     

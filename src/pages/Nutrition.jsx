@@ -15,6 +15,7 @@ import LogFoodModal from '../components/LogFoodModal';
 import CalorieRing from '../components/CalorieRing';
 import CalorieGoalEditor from '../components/CalorieGoalEditor';
 import RecentFoods from '../components/RecentFoods';
+import ScanBarcodeButton from '../components/ScanBarcodeButton';
 
 const MEAL_LABELS = {
   breakfast: 'Breakfast',
@@ -106,6 +107,7 @@ export default function Nutrition() {
           {searchOpenForMeal === meal && (
             <div style={{ marginBottom: '12px' }}>
                 <FoodSearch onSelectFood={handleSelectFood} />
+                <ScanBarcodeButton onFoodFound={(food) => setPendingFood(food)} />
                 <RecentFoods recentFoods={recentFoods} loading={recentLoading} onSelectFood={handleSelectFood}/>
             </div>
         )}

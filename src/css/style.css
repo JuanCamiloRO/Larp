@@ -542,6 +542,123 @@ button {
   color: #fff;
 }
 
+/* ============ Body Scan ============ */
+.bodyscan-card {
+  margin: 0 1rem 20px;
+}
+
+.bodyscan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.bodyscan-title {
+  font-size: clamp(1.35rem, 2vw, 1.7rem);
+  margin: 0 0 6px;
+}
+
+.bodyscan-score {
+  min-width: 84px;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.bodyscan-score-number {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+
+.bodyscan-score-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.bodyscan-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.bodyscan-upload-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.bodyscan-upload-button:active {
+  background: var(--surface-hover);
+  transform: scale(0.99);
+}
+
+.bodyscan-upload-button input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.bodyscan-analyze-button {
+  flex: 1;
+  min-width: 160px;
+}
+
+.bodyscan-analyze-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.bodyscan-preview {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  margin-bottom: 16px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+}
+
+.bodyscan-image {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  border-radius: calc(var(--radius-lg) - 6px);
+}
+
+.bodyscan-results {
+  margin-top: 4px;
+}
+
+.bodyscan-stats-row {
+  margin-bottom: 0;
+}
+
 /* ============ Tabs (generic) ============ */
 .tabs-row {
   display: flex;
@@ -952,6 +1069,9 @@ button {
   .stat-label { font-size: 10px; }
   .profile-top { gap: 0.75rem; }
   .set-row { grid-template-columns: 28px 1fr 1fr 1fr 20px 32px 24px; }
+  .bodyscan-header { flex-direction: column; }
+  .bodyscan-score { width: 100%; flex-direction: row; justify-content: space-between; }
+  .bodyscan-analyze-button { width: 100%; }
 }
 
 .muscle-map-trigger {

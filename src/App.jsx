@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home.jsx';
+import BarcodeScanner from './components/BarcodeScanner.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Discover from './pages/Discover.jsx';
 import Workout from './pages/Workout.jsx';
@@ -32,9 +33,10 @@ export default function App() {
       <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
       <Route path="/login" element={<Login />} />
       <Route path="/nutrition" element={<ProtectedRoute><Nutrition /></ProtectedRoute>} />
+      <Route path="/barcode" element={<ProtectedRoute><BarcodeScanner /></ProtectedRoute>} />
       <Route path="/ranks" element={<ProtectedRoute><Ranks /></ProtectedRoute>} />
       <Route path="/signup" element={<SignUp />} /> 
-      <Route path="/body-scan" element={<ProtectedRoute><BodyScan /></ProtectedRoute>} />
+      <Route path="/bodyscan" element={<ProtectedRoute><BodyScan /></ProtectedRoute>} />
     </Routes>
     
     </div>
