@@ -63,18 +63,36 @@ function BodyScan() {
     <div>
       <h2>Escanea tu cuerpo</h2>
       <p>De frente, brazos ligeramente separados, buena luz, ropa ajustada.</p>
-
-      <input type="file" accept="image/*" onChange={handleFoto} />
-
+  
+      {/* Contenedor de los controles (input + botón) */}
+      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '15px' }}>
+        <input 
+          type="file" 
+          accept="image/*"
+          onChange={handleFoto} 
+        />
+        
+        <button 
+          onClick={procesarFoto} 
+          disabled={cargando || !foto}
+        >
+          {cargando ? "Procesando..." : "Analizar"}
+        </button>
+      </div>
+  
+      {/* La imagen debajo */}
       {foto && (
-        <div>
-          <img ref={imagenRef} src={foto} alt="foto body scan" style={{ maxWidth: 300 }} />
-          <button onClick={procesarFoto} disabled={cargando}>
-            {cargando ? "Procesando..." : "Analizar"}
-          </button>
+        <div style={{ marginBottom: '15px' }}>
+          <img 
+            ref={imagenRef} 
+            src={foto} 
+            alt="foto body scan" 
+            style={{ maxWidth: '100%', maxHeight: '400px' }} 
+          />
         </div>
       )}
-
+  
+      {/* Resultados */}
       {resultado && (
         <div>
           <h3>Resultado: {resultado.scoreTotal}/100</h3>
