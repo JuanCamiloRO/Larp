@@ -3,12 +3,14 @@ import Graph from "../components/Graph"
 import ExerciseDisplay from "../components/ExerciseDisplay"
 import MuscleHeatmap from "../components/MuscleHeatmap"
 import EditTopLifts from "../components/EditTopLifts"
-import "../style.css"
+import "../css/style.css"
 import { useWorkout } from "../hooks/useWorkout"
+import { useAuth } from "../hooks/useAuth"
 
 export default function Dashboard() {
-  const { profile, loading: profileLoading, error: profileError } = useProfile()
-  const { workouts, loading: workoutsLoading, error: workoutsError } = useWorkout()
+  const { user } = useAuth()
+  const { profile, loading: profileLoading, error: profileError } = useProfile(user?.id)
+  const { workouts, loading: workoutsLoading, error: workoutsError } = useWorkout(user?.id)
 
   const workoutCount = workouts?.length || 0;
 

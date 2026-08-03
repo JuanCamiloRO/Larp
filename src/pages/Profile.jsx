@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { supabase } from '../supabase';
-import "../style.css"
+import "../css/style.css"
 
 export default function Profile() {
   const { user } = useAuth();

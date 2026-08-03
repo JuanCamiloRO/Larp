@@ -5,6 +5,7 @@ import Discover from './pages/Discover.jsx';
 import Workout from './pages/Workout.jsx';
 import Leaderboard from './pages/Leaderboard.jsx';
 import Login from './pages/Login.jsx';
+import Nutrition from './pages/Nutrition.jsx';
 import Profile from './pages/Profile.jsx';
 import PublicProfile from './pages/PublicProfile.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -29,6 +30,7 @@ export default function App() {
       <Route path="/profile/:userId" element={<PublicProfile />} />
       <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
       <Route path="/login" element={<Login />} />
+      <Route path="/nutrition" element={<ProtectedRoute><Nutrition /></ProtectedRoute>} />
       <Route path="/ranks" element={<ProtectedRoute><Ranks /></ProtectedRoute>} />
       <Route path="/signup" element={<SignUp />} /> 
     </Routes>

@@ -1,4 +1,10 @@
 // components/MuscleHeatmap.jsx
+// Restored to the original react-body-highlighter implementation. Only
+// change from the original: accepts an optional userId prop, passed
+// through to useMuscleHeatmap, so this same component can render either
+// the logged-in user's heatmap (Dashboard, userId omitted) or another
+// user's heatmap (PublicProfile, userId provided).
+
 import { useState } from 'react';
 import Model from 'react-body-highlighter';
 import { useMuscleHeatmap } from '../hooks/useMuscleHeatmap';
@@ -10,11 +16,9 @@ const RANGE_OPTIONS = [
   { label: '90D', days: 90 },
 ];
 
-export default function MuscleHeatmap() {
+export default function MuscleHeatmap({ userId }) {
   const [days, setDays] = useState(7);
-  const { data, muscleTotals, loading, error } = useMuscleHeatmap(days);
-  console.log('muscleTotals:', muscleTotals);
-  console.log('data:', data);
+  const { data, muscleTotals, loading, error } = useMuscleHeatmap(days, userId);
 
   if (loading) {
     return (

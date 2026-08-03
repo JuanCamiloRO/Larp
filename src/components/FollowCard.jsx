@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../hooks/useAuth';
 import { useRandomProfiles } from '../hooks/useRandomProfiles';
+import { UserPlus, UserCheck } from 'lucide-react';
+import FollowButton from './FollowButton';
+import '../css/style.css';
 
 export default function FollowCard() {
   const { user } = useAuth();
@@ -100,12 +103,18 @@ export default function FollowCard() {
             <span className="follow-handle">@{u.username}</span>
           </div>
 
-          <button
+          <FollowButton
+            targetUserId={u.id}
             className={`follow-btn ${following[u.id] ? 'following' : ''}`}
             onClick={() => toggleFollow(u.id)}
+            style={{ width: '100px', marginRight: '8px' }}
           >
-            <span>{following[u.id] ? 'Following' : 'Follow'}</span>
-          </button>
+            <span>
+              {following[u.id] ? 'Following' : 'Follow'}
+            </span>
+
+            {following[u.id] ? <UserCheck /> : <UserPlus />}
+          </FollowButton>
 
           <button
             className="follow-dismiss"

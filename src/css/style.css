@@ -1149,3 +1149,30 @@ button {
   font-size: 11px;
   margin-top: 6px;
 }
+
+.leaderboard-scope-toggle {
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px;
+  margin-bottom: 20px;
+  width: fit-content;
+}
+
+.leaderboard-scope-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.leaderboard-scope-btn.active {
+  background: var(--accent);
+  color: black;
+}

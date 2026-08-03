@@ -1,23 +1,28 @@
 // hooks/useMuscleHeatmap.js
-import { useState, useEffect } from 'react';
+// Aggregates muscle training volume/frequency over a rolling window from
+// workout_sets -> exercises(primary_muscles, secondary_muscles) joined to
+// workouts(started_at). Accepts an optional userId -- when omitted, defaults
+// to the currently authenticated user (preserving useMuscleHeatmap(days)
+// as used on Dashboard), and when passed, scopes the query to that user
+// instead, so the same hook can power PublicProfile's heatmap.
+
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
 import { useAuth } from './useAuth';
 import { mapMusclesToBodyParts } from '../lib/muscleMap';
 import { aggregateMuscleSets } from '../lib/muscleStats';
 
-export function useMuscleHeatmap(days = 7) {
+export function useMuscleHeatmap(days = 7, userId) {
   const { user } = useAuth();
+  const targetUserId = userId || user?.id;
+
   const [data, setData] = useState([]);
   const [muscleTotals, setMuscleTotals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchHeatmapData();
-  }, [user, days]);
-
-  async function fetchHeatmapData() {
+  const fetchHeatmapData = useCallback(async () => {
+    if (!targetUserId) return;
     setLoading(true);
     setError(null);
 
@@ -31,7 +36,7 @@ export function useMuscleHeatmap(days = 7) {
         exercises(name, primary_muscles, secondary_muscles),
         workouts!inner(user_id, started_at)
       `)
-      .eq('workouts.user_id', user.id)
+      .eq('workouts.user_id', targetUserId)
       .gte('workouts.started_at', since.toISOString());
 
     if (fetchError) {
@@ -72,7 +77,11 @@ export function useMuscleHeatmap(days = 7) {
     setData([...secondaryData, ...primaryData]);
     setMuscleTotals(aggregateMuscleSets(statEntries));
     setLoading(false);
-  }
+  }, [targetUserId, days]);
+
+  useEffect(() => {
+    fetchHeatmapData();
+  }, [fetchHeatmapData]);
 
   return { data, muscleTotals, loading, error, refetch: fetchHeatmapData };
 }

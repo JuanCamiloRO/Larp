@@ -1,0 +1,40 @@
+/* styles/scanner.css */
+/* Full-screen camera overlay used by BarcodeScanner.jsx */
+
+.scanner-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: black;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Quagga injects a <video> + <canvas> into this element */
+.scanner-viewport {
+  flex: 1;
+  min-height: 300px; /* guarantees non-zero height even before layout settles */
+  position: relative;
+  overflow: hidden;
+}
+
+.scanner-viewport video,
+.scanner-viewport canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scanner-status-bar {
+  padding: 16px;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.scanner-cancel-btn {
+  margin: 16px;
+  align-self: center;
+}

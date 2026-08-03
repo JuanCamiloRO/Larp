@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfileSearch } from '../hooks/useProfileSearch';
+import '../css/style.css';
 
 export default function ProfileSearchBar() {
   const [query, setQuery] = useState('');

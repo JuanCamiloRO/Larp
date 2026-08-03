@@ -1,7 +1,13 @@
-import { useState } from 'react';
+// pages/Leaderboard.jsx
+// Exercise leaderboard ranked by e1RM, with a Friends-only toggle. When
+// enabled, the leaderboard query is scoped to users the current user
+// follows (plus themselves); when disabled, it's the global top list.
+
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useExerciseLeaderboard } from '../hooks/useExerciseLeaderboard';
+import { useFollowedUserIds } from '../hooks/useFollowedUserIds';
 import ExercisePicker from '../components/ExercisePicker';
 
 const IMAGE_BASE_URL = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
@@ -11,7 +17,21 @@ export default function Leaderboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedExercise, setSelectedExercise] = useState(null);
-  const { leaderboard, loading, error } = useExerciseLeaderboard(selectedExercise?.id);
+  const [friendsOnly, setFriendsOnly] = useState(false);
+
+  const { followedIds, loading: followedLoading } = useFollowedUserIds(user?.id);
+
+  // Scope passed to the leaderboard query: null = global, array = friends only.
+  // Always include the current user so they see their own rank in friends mode.
+  const scopeUserIds = useMemo(() => {
+    if (!friendsOnly) return null;
+    return user?.id ? [...new Set([...followedIds, user.id])] : followedIds;
+  }, [friendsOnly, followedIds, user?.id]);
+
+  const { leaderboard, loading, error } = useExerciseLeaderboard(
+    selectedExercise?.id,
+    scopeUserIds
+  );
 
   function resolveImageUrl(img) {
     if (!img) return null;
@@ -58,16 +78,41 @@ export default function Leaderboard() {
         <h1 style={{ color: 'white', fontSize: '20px', margin: 0 }}>{selectedExercise.name}</h1>
       </div>
 
-      <p className="subtle" style={{ fontSize: '13px', marginBottom: '20px' }}>
+      <p className="subtle" style={{ fontSize: '13px', marginBottom: '16px' }}>
         Ranked by estimated 1-rep max (e1RM)
       </p>
 
-      {loading && <p className="subtle">Loading leaderboard...</p>}
+      <div className="leaderboard-scope-toggle">
+        <button
+          className={`leaderboard-scope-btn ${!friendsOnly ? 'active' : ''}`}
+          onClick={() => setFriendsOnly(false)}
+        >
+          Everyone
+        </button>
+        <button
+          className={`leaderboard-scope-btn ${friendsOnly ? 'active' : ''}`}
+          onClick={() => setFriendsOnly(true)}
+        >
+          Friends
+        </button>
+      </div>
+
+      {(loading || (friendsOnly && followedLoading)) && (
+        <p className="subtle">Loading leaderboard...</p>
+      )}
       {error && <p className="message error">Error: {error}</p>}
 
-      {!loading && !error && leaderboard.length === 0 && (
+      {!loading && !followedLoading && !error && friendsOnly && followedIds.length === 0 && (
         <p className="subtle" style={{ textAlign: 'center', padding: '30px 0' }}>
-          No one has logged this exercise yet. Be the first!
+          You're not following anyone yet. Follow other lifters to compare with them here.
+        </p>
+      )}
+
+      {!loading && !error && leaderboard.length === 0 && !(friendsOnly && followedIds.length === 0) && (
+        <p className="subtle" style={{ textAlign: 'center', padding: '30px 0' }}>
+          {friendsOnly
+            ? 'None of your friends have logged this exercise yet.'
+            : 'No one has logged this exercise yet. Be the first!'}
         </p>
       )}
 

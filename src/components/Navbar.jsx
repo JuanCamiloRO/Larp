@@ -1,7 +1,7 @@
 // components/NavBar.jsx
 import { NavLink } from 'react-router-dom';
 import { Link } from 'react-router-dom';
-import { Home, BarChart2, PlusCircle, Globe, Trophy,TrendingUp, Medal, User } from 'lucide-react';
+import { Home, BarChart2, PlusCircle, Globe, Trophy,TrendingUp, Medal, Hamburger } from 'lucide-react';
 import { useWorkoutContext } from '../context/WorkoutContext.jsx';
 
 export default function NavBar() {
@@ -44,9 +44,9 @@ export default function NavBar() {
         <span>Leaderboard</span>
       </NavLink>
 
-      <NavLink to="/profile" className="nav-item">
-        <User size={24} />
-        <span>Profile</span>
+      <NavLink to="/nutrition" className="nav-item">
+        <Hamburger size={24} />
+        <span>Nutrition</span>
       </NavLink>
     </nav>
     </>

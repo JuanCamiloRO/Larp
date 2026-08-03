@@ -1,5 +1,6 @@
 import ProfileSearchBar from "../components/ProfileSearchBar";
 import FollowCard from "../components/FollowCard";
+
 export default function Discover() {
   return (
     <div className="discover-page">
