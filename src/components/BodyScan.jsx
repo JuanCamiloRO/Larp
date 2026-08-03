@@ -64,7 +64,7 @@ function BodyScan() {
       <h2>Escanea tu cuerpo</h2>
       <p>De frente, brazos ligeramente separados, buena luz, ropa ajustada.</p>
 
-      <input type="file" accept="image/*" capture="environment" onChange={handleFoto} />
+      <input type="file" accept="image/*" onChange={handleFoto} />
 
       {foto && (
         <div>
