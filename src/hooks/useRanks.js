@@ -1,4 +1,10 @@
 // hooks/useRanks.js
+// Fixed to match the REAL exercise_thresholds schema, confirmed from the
+// live update_exercise_rank() trigger: exercise_thresholds(exercise_id,
+// rank, min_1rm) -- normalized rows, NOT wide per-tier columns.
+// Previous version incorrectly assumed columns like `crossfitter_min`
+// that never existed.
+
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { TIER_ORDER } from '../lib/rankTiers';
@@ -27,9 +33,10 @@ export function useRanks(userId) {
 
     const exerciseIds = records.map((r) => r.exercise_id);
 
-    const { data: thresholds, error: thresholdsError } = await supabase
+    // normalized: one row per (exercise_id, rank) with its min_1rm
+    const { data: thresholdRows, error: thresholdsError } = await supabase
       .from('exercise_thresholds')
-      .select('exercise_id, larpy_min, master_larp_min')
+      .select('exercise_id, rank, min_1rm')
       .in('exercise_id', exerciseIds);
 
     if (thresholdsError) {
@@ -37,26 +44,26 @@ export function useRanks(userId) {
       return;
     }
 
-    const thresholdsMap = Object.fromEntries(
-      (thresholds || []).map((t) => [t.exercise_id, t])
-    );
+    // group threshold rows by exercise_id, sorted ascending by min_1rm
+    const thresholdsByExercise = {};
+    for (const t of thresholdRows || []) {
+      if (!thresholdsByExercise[t.exercise_id]) thresholdsByExercise[t.exercise_id] = [];
+      thresholdsByExercise[t.exercise_id].push(t);
+    }
+    for (const exId in thresholdsByExercise) {
+      thresholdsByExercise[exId].sort((a, b) => a.min_1rm - b.min_1rm);
+    }
 
     const computed = records
-      .filter((r) => thresholdsMap[r.exercise_id] && r.rank)
+      .filter((r) => thresholdsByExercise[r.exercise_id] && r.rank)
       .map((r) => {
-        const { larpy_min, master_larp_min } = thresholdsMap[r.exercise_id];
-        const currentIndex = TIER_ORDER.indexOf(r.rank);
-        const nextTierKey = TIER_ORDER[currentIndex + 1] || null;
+        const sortedThresholds = thresholdsByExercise[r.exercise_id];
+        const currentIndex = sortedThresholds.findIndex((t) => t.rank === r.rank);
+        const nextThreshold = sortedThresholds[currentIndex + 1] || null;
+        const currentThreshold = sortedThresholds[currentIndex] || { min_1rm: 0 };
 
-        let base = 0;
-        let nextTierWeight = larpy_min;
-
-        if (r.rank === 'larpy') {
-          base = larpy_min;
-          nextTierWeight = master_larp_min;
-        } else if (r.rank === 'master_larp') {
-          nextTierWeight = null;
-        }
+        const base = currentThreshold.min_1rm;
+        const nextTierWeight = nextThreshold ? nextThreshold.min_1rm : null;
 
         let progress = 100;
         if (nextTierWeight !== null) {
@@ -69,7 +76,7 @@ export function useRanks(userId) {
           exercise_name: r.exercises.name,
           best_1rm: r.best_1rm,
           currentTierKey: r.rank,
-          nextTierKey,
+          nextTierKey: nextThreshold ? nextThreshold.rank : null,
           nextTierWeight,
           progress,
         };

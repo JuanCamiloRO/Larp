@@ -1,10 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-
-const TIERS = {
-  larp_baby: { label: 'Larp Baby', icon: '/ranks/bronze.png' },
-  larpy: { label: 'Larpy', icon: '/ranks/diamond.png' },
-  master_larp: { label: 'Master Larp', icon: '/ranks/unreal.png' },
-};
+import { TIERS } from '../lib/rankTiers';
 
 export default function WorkoutSummary({ summary, onClose }) {
   const navigate = useNavigate();

@@ -48,7 +48,6 @@ export function useBarcodeScanner() {
       canvasRef.current = canvas;
       const ctx = canvas.getContext('2d');
 
-      console.log('Native BarcodeDetector available?', 'BarcodeDetector' in window);
       detectorRef.current = new BarcodeDetector({ formats: SUPPORTED_FORMATS });
 
       intervalRef.current = setInterval(async () => {
@@ -64,7 +63,6 @@ export function useBarcodeScanner() {
 
         try {
           const barcodes = await detectorRef.current.detect(canvas);
-          console.log('detect result:', barcodes);
           if (barcodes.length > 0) {
             onDetect(barcodes[0].rawValue);
           }

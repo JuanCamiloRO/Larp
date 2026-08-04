@@ -1,22 +1,36 @@
-// src/components/BodyScan.jsx
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { PoseLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
-import { calcularScores } from "../lib/poseUtils";
+import { calcularScores, calcularMasaDef } from "../lib/poseUtils";
 import { supabase } from '../supabase';
 import "../css/style.css";
 
-function BodyScan() {
+function BodyScan({ onClose }) {
   const [foto, setFoto] = useState(null);
   const [resultado, setResultado] = useState(null);
   const [cargando, setCargando] = useState(false);
+  const [perfil, setPerfil] = useState({ peso: "", altura: "", grasa: "", sexo: "H" });
+  const [inputKey, setInputKey] = useState(0);
   const imagenRef = useRef(null);
 
-  const handleFoto = (evento) => {
-    const archivo = evento.target.files[0];
-    if (archivo) {
-      setFoto(URL.createObjectURL(archivo));
-      setResultado(null);
-    }
+  const resetearTodo = useCallback(() => {
+    if (foto) URL.revokeObjectURL(foto);
+    setFoto(null);
+    setResultado(null);
+    setCargando(false);
+    setInputKey((k) => k + 1);
+    onClose?.();
+  }, [foto, onClose]);
+
+  const handleFoto = (e) => {
+    const archivo = e.target.files[0];
+    if (!archivo) return;
+    if (foto) URL.revokeObjectURL(foto);
+    setFoto(URL.createObjectURL(archivo));
+    setResultado(null);
+  };
+
+  const handlePerfil = (campo, valor) => {
+    setPerfil((p) => ({ ...p, [campo]: valor }));
   };
 
   async function crearDetector() {
@@ -33,44 +47,105 @@ function BodyScan() {
   }
 
   const procesarFoto = async () => {
+    if (!imagenRef.current) return;
     setCargando(true);
-    const detector = await crearDetector();
-    const deteccion = detector.detect(imagenRef.current);
 
-    if (!deteccion.landmarks || deteccion.landmarks.length === 0) {
-      alert("No se detectó un cuerpo, repite la foto con mejor luz/postura.");
+    try {
+      const detector = await crearDetector();
+      const deteccion = detector.detect(imagenRef.current);
+
+      if (!deteccion.landmarks || deteccion.landmarks.length === 0) {
+        alert("No se detectó un cuerpo, repite la foto con mejor luz/postura.");
+        setCargando(false);
+        return;
+      }
+
+      const puntos = deteccion.landmarks[0];
+      const scores = calcularScores(puntos);
+
+      const p = perfil;
+      const tienePerfil = p.peso && p.altura && p.grasa;
+      let scoreMusc = null;
+      let scoreDef = null;
+
+      if (tienePerfil) {
+        const md = calcularMasaDef(Number(p.peso), Number(p.altura), Number(p.grasa), p.sexo);
+        scoreMusc = md.scoreMusc;
+        scoreDef = md.scoreDef;
+      }
+
+      const overall = Math.round(
+        scores.scorePotencial * 0.30 +
+        scores.scoreSimetria * 0.25 +
+        scores.scorePostura * 0.25 +
+        (scoreMusc !== null ? scoreMusc * 0.10 : 0) +
+        (scoreDef !== null ? scoreDef * 0.10 : 0)
+      );
+
+      const final = { ...scores, scoreMusc, scoreDef, scoreTotal: overall };
+      setResultado(final);
+
+      await supabase.from("body_scans").insert({
+        user_id: (await supabase.auth.getUser()).data.user.id,
+        score_potencial: final.scorePotencial,
+        score_simetria: final.scoreSimetria,
+        score_postura: final.scorePostura,
+        score_musc: final.scoreMusc,
+        score_def: final.scoreDef,
+        score_total: final.scoreTotal,
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Error al analizar. Intenta con otra foto.");
+    } finally {
       setCargando(false);
-      return;
     }
-
-    const puntos = deteccion.landmarks[0];
-    const scores = calcularScores(puntos);
-    setResultado(scores);
-
-    await supabase.from("body_scans").insert({
-      user_id: (await supabase.auth.getUser()).data.user.id,
-      score_simetria: scores.scoreSimetria,
-      score_estructura: scores.scoreEstructura,
-      score_postura: scores.scorePostura,
-      score_total: scores.scoreTotal,
-      ratio_hombro_cadera: scores.ratioHombroCadera,
-    });
-
-    setCargando(false);
   };
 
   const getColor = (val) => {
+    if (val === null) return "#64748b";
     if (val >= 80) return "#22c55e";
     if (val >= 60) return "#3b82f6";
     if (val >= 40) return "#f59e0b";
     return "#ef4444";
   };
 
-  const getGlow = (val) => {
-    if (val >= 80) return "rgba(34,197,94,0.4)";
-    if (val >= 60) return "rgba(59,130,246,0.4)";
-    if (val >= 40) return "rgba(245,158,11,0.4)";
-    return "rgba(239,68,68,0.4)";
+  const stats = resultado
+    ? [
+        { abbr: "POT", label: "Potencial", val: resultado.scorePotencial },
+        { abbr: "SIM", label: "Simetría", val: resultado.scoreSimetria },
+        { abbr: "POS", label: "Postura", val: resultado.scorePostura },
+        ...(resultado.scoreMusc !== null
+          ? [
+              { abbr: "MUSC", label: "Masa", val: resultado.scoreMusc },
+              { abbr: "DEF", label: "Definición", val: resultado.scoreDef },
+            ]
+          : []),
+      ]
+    : [];
+
+  const inputStyle = {
+    width: "100%",
+    padding: "12px 14px",
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(255,255,255,0.04)",
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: 600,
+    outline: "none",
+    boxSizing: "border-box",
+    WebkitAppearance: "none",
+  };
+
+  const labelStyle = {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "rgba(255,255,255,0.4)",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 6,
+    display: "block",
   };
 
   return (
@@ -84,10 +159,17 @@ function BodyScan() {
       </div>
 
       <div className="bodyscan-controls">
-        <label className="bodyscan-upload-button">
+        <label className="bodyscan-upload-button" htmlFor="bodyscan-input">
           <span>Elegir foto</span>
-          <input type="file" accept="image/*" onChange={handleFoto} />
         </label>
+        <input
+          id="bodyscan-input"
+          key={inputKey}
+          type="file"
+          accept="image/*"
+          onChange={handleFoto}
+          style={{ display: "none" }}
+        />
 
         <button
           className="primary-btn bodyscan-analyze-button"
@@ -96,6 +178,59 @@ function BodyScan() {
         >
           {cargando ? "Procesando..." : "Analizar"}
         </button>
+      </div>
+
+      <div style={{ maxWidth: 340, width: "100%", marginTop: 20 }}>
+        <p style={{ ...labelStyle, marginBottom: 10 }}>Datos opcionales</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 12px" }}>
+          <div>
+            <label style={labelStyle}>Peso (kg)</label>
+            <input
+              type="number"
+              inputMode="decimal"
+              placeholder="70"
+              value={perfil.peso}
+              onChange={(e) => handlePerfil("peso", e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Altura (cm)</label>
+            <input
+              type="number"
+              inputMode="decimal"
+              placeholder="175"
+              value={perfil.altura}
+              onChange={(e) => handlePerfil("altura", e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>% Grasa</label>
+            <input
+              type="number"
+              inputMode="decimal"
+              placeholder="18"
+              value={perfil.grasa}
+              onChange={(e) => handlePerfil("grasa", e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Sexo</label>
+            <select
+              value={perfil.sexo}
+              onChange={(e) => handlePerfil("sexo", e.target.value)}
+              style={{ ...inputStyle, cursor: "pointer" }}
+            >
+              <option value="H" style={{ background: "#1e293b", color: "#fff" }}>Hombre</option>
+              <option value="M" style={{ background: "#1e293b", color: "#fff" }}>Mujer</option>
+            </select>
+          </div>
+        </div>
+        <p style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", margin: "10px 0 0", lineHeight: 1.4 }}>
+          Rellena estos campos para desbloquear Masa y Definición en tu carta.
+        </p>
       </div>
 
       {foto && !resultado && (
@@ -110,223 +245,200 @@ function BodyScan() {
       )}
 
       {resultado && (
-        <div
-          style={{
-            position: "relative",
-            width: "100%",
-            maxWidth: 360,
-            margin: "24px auto 0",
-            aspectRatio: "2/3",
-            borderRadius: 20,
-            overflow: "hidden",
-            boxShadow: "0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08)",
-            background: "#0a0a0a",
-          }}
-        >
-          <img
-            src={foto}
-            alt="body scan"
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              filter: "brightness(0.4) contrast(1.1)",
-            }}
-          />
-
+        <>
           <div
             style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
+              position: "relative",
               width: "100%",
-              height: "100%",
-              background: "linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.85) 100%)",
-            }}
-          />
-
-          {/* Overall en blanco con barra */}
-          <div
-            style={{
-              position: "absolute",
-              top: 20,
-              right: 20,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: 6,
+              maxWidth: 340,
+              margin: "28px auto 0",
+              aspectRatio: "2/3",
+              borderRadius: 20,
+              overflow: "hidden",
+              boxShadow: "0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08)",
+              background: "#0a0a0a",
             }}
           >
-            <span
+            <img
+              src={foto}
+              alt="body scan"
               style={{
-                fontSize: 48,
-                fontWeight: 900,
-                color: "#fff",
-                lineHeight: 1,
-                textShadow: "0 2px 12px rgba(0,0,0,0.8)",
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                filter: "brightness(0.4) contrast(1.1)",
               }}
-            >
-              {Math.round(resultado.scoreTotal)}
-            </span>
+            />
+
             <div
               style={{
-                width: 56,
-                height: 4,
-                borderRadius: 2,
-                background: "rgba(255,255,255,0.15)",
-                overflow: "hidden",
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                background: "linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.85) 100%)",
+              }}
+            />
+
+            <div
+              style={{
+                position: "absolute",
+                top: 20,
+                right: 20,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+                gap: 6,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 52,
+                  fontWeight: 900,
+                  color: "#fff",
+                  lineHeight: 1,
+                  textShadow: "0 2px 12px rgba(0,0,0,0.8)",
+                }}
+              >
+                {resultado.scoreTotal}
+              </span>
+              <div
+                style={{
+                  width: 56,
+                  height: 4,
+                  borderRadius: 2,
+                  background: "rgba(255,255,255,0.15)",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    width: `${resultado.scoreTotal}%`,
+                    height: "100%",
+                    borderRadius: 2,
+                    background: "#fff",
+                    boxShadow: "0 0 8px rgba(255,255,255,0.5)",
+                  }}
+                />
+              </div>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "rgba(255,255,255,0.5)",
+                  letterSpacing: 1.5,
+                  textTransform: "uppercase",
+                }}
+              >
+                Overall
+              </span>
+            </div>
+
+            <div style={{ position: "absolute", top: 24, left: 20 }}>
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: 800,
+                  color: "rgba(255,255,255,0.9)",
+                  letterSpacing: 2,
+                  textTransform: "uppercase",
+                  textShadow: "0 2px 8px rgba(0,0,0,0.6)",
+                }}
+              >
+                Body Scan
+              </span>
+            </div>
+
+            <div
+              style={{
+                position: "absolute",
+                top: 100,
+                left: 20,
+                width: 40,
+                height: 2,
+                background: "rgba(255,255,255,0.3)",
+                borderRadius: 1,
+              }}
+            />
+
+            <div
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                width: "100%",
+                padding: "20px",
+                background: "linear-gradient(0deg, rgba(0,0,0,0.92), rgba(0,0,0,0.3))",
               }}
             >
               <div
                 style={{
-                  width: `${Math.round(resultado.scoreTotal)}%`,
-                  height: "100%",
-                  borderRadius: 2,
-                  background: "#fff",
-                  boxShadow: "0 0 8px rgba(255,255,255,0.5)",
-                }}
-              />
-            </div>
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: "rgba(255,255,255,0.6)",
-                letterSpacing: 1.5,
-                textTransform: "uppercase",
-              }}
-            >
-              Overall
-            </span>
-          </div>
-
-          {/* Título */}
-          <div style={{ position: "absolute", top: 24, left: 20 }}>
-            <span
-              style={{
-                fontSize: 14,
-                fontWeight: 800,
-                color: "rgba(255,255,255,0.9)",
-                letterSpacing: 2,
-                textTransform: "uppercase",
-                textShadow: "0 2px 8px rgba(0,0,0,0.6)",
-              }}
-            >
-              Body Scan
-            </span>
-          </div>
-
-          <div
-            style={{
-              position: "absolute",
-              top: 100,
-              left: 20,
-              width: 40,
-              height: 2,
-              background: "rgba(255,255,255,0.3)",
-              borderRadius: 1,
-            }}
-          />
-
-          {/* Stats */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              width: "100%",
-              padding: "24px 20px 28px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 14,
-              background: "linear-gradient(0deg, rgba(0,0,0,0.92), rgba(0,0,0,0.3))",
-            }}
-          >
-            {[
-              { label: "Simetría", val: Math.round(resultado.scoreSimetria) },
-              { label: "Estructura", val: Math.round(resultado.scoreEstructura) },
-              { label: "Postura", val: Math.round(resultado.scorePostura) },
-            ].map((s) => (
-              <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span
-                  style={{
-                    width: 80,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "rgba(255,255,255,0.5)",
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
-                  }}
-                >
-                  {s.label}
-                </span>
-                <div
-                  style={{
-                    flex: 1,
-                    height: 6,
-                    borderRadius: 3,
-                    background: "rgba(255,255,255,0.08)",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${s.val}%`,
-                      height: "100%",
-                      borderRadius: 3,
-                      background: getColor(s.val),
-                      boxShadow: `0 0 8px ${getGlow(s.val)}`,
-                    }}
-                  />
-                </div>
-                <span
-                  style={{
-                    width: 28,
-                    textAlign: "right",
-                    fontSize: 14,
-                    fontWeight: 800,
-                    color: getColor(s.val),
-                  }}
-                >
-                  {s.val}
-                </span>
-              </div>
-            ))}
-
-            <div style={{ width: "100%", height: 1, background: "rgba(255,255,255,0.08)", marginTop: 4 }} />
-
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  color: "rgba(255,255,255,0.35)",
-                  textTransform: "uppercase",
-                  letterSpacing: 0.5,
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "14px 16px",
                 }}
               >
-                Ratio Hombro/Cadera
-              </span>
-              <span style={{ fontSize: 13, fontWeight: 800, color: "rgba(255,255,255,0.9)" }}>
-                {resultado.ratioHombroCadera?.toFixed(2)}
-              </span>
+                {stats.map((s) => (
+                  <div key={s.abbr} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 800,
+                        color: getColor(s.val),
+                        width: 42,
+                        letterSpacing: 0.5,
+                      }}
+                    >
+                      {s.abbr}
+                    </span>
+                    <div
+                      style={{
+                        flex: 1,
+                        height: 5,
+                        borderRadius: 3,
+                        background: "rgba(255,255,255,0.08)",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: s.val !== null ? `${s.val}%` : "0%",
+                          height: "100%",
+                          borderRadius: 3,
+                          background: getColor(s.val),
+                        }}
+                      />
+                    </div>
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 800,
+                        color: s.val !== null ? "#fff" : "#64748b",
+                        width: 26,
+                        textAlign: "right",
+                      }}
+                    >
+                      {s.val !== null ? s.val : "--"}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {resultado && (
-        <div className="bodyscan-controls" style={{ marginTop: 16 }}>
-          <button
-            className="primary-btn bodyscan-analyze-button"
-            onClick={() => { setResultado(null); setFoto(null); }}
-          >
-            Escanear de nuevo
-          </button>
-        </div>
+          <div className="bodyscan-controls" style={{ marginTop: 16 }}>
+            <button
+              className="primary-btn bodyscan-analyze-button"
+              onClick={resetearTodo}
+            >
+              Escanear de nuevo
+            </button>
+          </div>
+        </>
       )}
     </section>
   );

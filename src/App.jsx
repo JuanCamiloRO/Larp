@@ -1,6 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home.jsx';
-import BarcodeScanner from './components/BarcodeScanner.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Discover from './pages/Discover.jsx';
 import Workout from './pages/Workout.jsx';
@@ -10,12 +9,11 @@ import Nutrition from './pages/Nutrition.jsx';
 import Profile from './pages/Profile.jsx';
 import PublicProfile from './pages/PublicProfile.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
-import Ranks from './pages/Ranks.jsx';
+import MuscleRanks from './pages/MuscleRanks.jsx';
 import Settings from './pages/Settings.jsx';
 import SignUp from './pages/SignUp.jsx';
 import Navbar from './components/Navbar.jsx';
 import WorkoutProvider from './context/WorkoutContext.jsx';
-import BodyScan from "./components/BodyScan";
 
 export default function App() {
   return (
@@ -33,10 +31,8 @@ export default function App() {
       <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
       <Route path="/login" element={<Login />} />
       <Route path="/nutrition" element={<ProtectedRoute><Nutrition /></ProtectedRoute>} />
-      <Route path="/barcode" element={<ProtectedRoute><BarcodeScanner /></ProtectedRoute>} />
-      <Route path="/ranks" element={<ProtectedRoute><Ranks /></ProtectedRoute>} />
+      <Route path="/ranks" element={<ProtectedRoute><MuscleRanks /></ProtectedRoute>} />
       <Route path="/signup" element={<SignUp />} /> 
-      <Route path="/bodyscan" element={<ProtectedRoute><BodyScan /></ProtectedRoute>} />
     </Routes>
     
     </div>

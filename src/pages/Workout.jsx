@@ -133,6 +133,7 @@ export default function Workout() {
         .select()
         .single();
 
+        console.log('Adding set to workout:', { workout_id: id, exercise_id: ex.id, reps: set.reps, weight: set.weight, set_number: setIndex + 1 });
       if (error) return;
 
       const { data: prCheck } = await supabase

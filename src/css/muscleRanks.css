@@ -1,0 +1,89 @@
+.muscle-rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.muscle-rank-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.muscle-rank-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.muscle-rank-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.muscle-icon {
+  width: 48px;
+  height: 48px;
+}
+
+.muscle-rank-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rank-tier-icon-sm {
+  width: 24px;
+  height: 24px;
+}
+
+.rank-tier-icon-xs {
+  width: 18px;
+  height: 18px;
+}
+
+.muscle-rank-badge-label {
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.muscle-chevron {
+  color: var(--text-dim);
+  transition: transform 0.2s ease;
+}
+
+.muscle-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+.muscle-rank-detail {
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.muscle-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+
+.muscle-detail-name {
+  color: white;
+  font-size: 13px;
+}
+
+.muscle-detail-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

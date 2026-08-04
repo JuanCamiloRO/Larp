@@ -1,4 +1,7 @@
 // components/ExerciseRankBadge.jsx
+// Unchanged logic -- works for all 7 tiers automatically since it looks
+// up TIERS[rank.rank] generically rather than hardcoding tier names.
+
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { TIERS } from '../lib/rankTiers';
