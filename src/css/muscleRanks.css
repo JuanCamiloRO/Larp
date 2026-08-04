@@ -24,14 +24,15 @@
 }
 
 .muscle-rank-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
 }
 
 .muscle-icon {
   width: 48px;
   height: 48px;
+  border-radius: 100%;
+  object-fit: cover;
+  border: 1px solid var(--border);
 }
 
 .muscle-rank-right {
@@ -86,4 +87,37 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.muscle-detail-row-expanded {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.muscle-detail-row-expanded:last-child {
+  border-bottom: none;
+}
+
+.muscle-detail-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.muscle-detail-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.rank-tier-icon-maxed-sm {
+  font-size: 14px;
+}
+
+.muscle-heatmap-badge {
+  border-radius: 8px;
+  background: #1c1c1e;
+  flex-shrink: 0;
 }
