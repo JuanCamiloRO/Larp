@@ -70,7 +70,7 @@ export default function Nutrition() {
   }
 
   return (
-    <div style={{ padding: '16px' }}>
+    <div style={{ padding: '16px' }} className="page-transition">
       <h1 style={{ color: 'white', marginBottom: '16px' }}>Nutrition</h1>
 
       <div className="date-nav">

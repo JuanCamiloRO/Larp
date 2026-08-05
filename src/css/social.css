@@ -18,3 +18,323 @@
 .follow-btn-danger:hover {
   background: rgba(248, 113, 113, 0.1);
 }
+
+.public-profile-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 12px 16px calc(104px + env(safe-area-inset-bottom));
+  background: #000;
+  color: #fff;
+}
+
+.public-profile-nav {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  min-height: 48px;
+  margin-bottom: 16px;
+}
+
+.public-profile-nav__title {
+  margin: 0;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.public-profile-back-button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #1c1c1e;
+  color: #fff;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    transform 100ms ease;
+}
+
+.public-profile-back-button:active {
+  background: #2c2c2e;
+  transform: scale(0.94);
+}
+
+.public-profile-hero {
+  margin-bottom: 24px;
+  padding: 18px;
+  border: 1px solid #2c2c2e;
+  border-radius: 16px;
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(10, 132, 255, 0.14),
+      transparent 46%
+    ),
+    #1c1c1e;
+}
+
+.public-profile-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.public-profile-avatar {
+  width: 82px;
+  height: 82px;
+  flex: 0 0 auto;
+  border: 2px solid #3a3a3c;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #2c2c2e;
+}
+
+.public-profile-stats {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.public-profile-stat {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.public-profile-stat__number {
+  overflow: hidden;
+  max-width: 100%;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-profile-stat__label {
+  color: #8e8e93;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.public-profile-info {
+  margin-top: 16px;
+}
+
+.public-profile-username {
+  margin: 0;
+  color: #fff;
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.public-profile-bio {
+  margin: 7px 0 0;
+  color: #b0b0b5;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.public-profile-follow-button {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 18px;
+  border-radius: 10px;
+  background: #0a84ff;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.public-profile-section {
+  margin-top: 26px;
+}
+
+.public-profile-section--heatmap {
+  padding-bottom: 8px;
+}
+
+.public-profile-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.public-profile-section__title {
+  margin: 0;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.public-profile-error {
+  padding: 24px 16px;
+  border: 1px solid rgba(255, 69, 58, 0.35);
+  border-radius: 14px;
+  background: rgba(255, 69, 58, 0.1);
+  text-align: center;
+}
+
+.public-profile-error h2 {
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: 18px;
+}
+
+.public-profile-error p {
+  margin: 0;
+  color: #ff9d97;
+  font-size: 14px;
+}
+
+.public-profile-error__button {
+  min-height: 42px;
+  margin-top: 18px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 9px;
+  background: #3a3a3c;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Profile-loading skeleton */
+
+.public-profile-hero--skeleton {
+  min-height: 190px;
+}
+
+.public-profile-skeleton {
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    #242426 25%,
+    #343438 50%,
+    #242426 75%
+  );
+  background-size: 200% 100%;
+  animation: public-profile-shimmer 1.2s ease-in-out infinite;
+}
+
+.public-profile-skeleton--button {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+
+.public-profile-skeleton--nav-title {
+  width: 72px;
+  height: 17px;
+  justify-self: center;
+}
+
+.public-profile-skeleton--avatar {
+  width: 82px;
+  height: 82px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+.public-profile-skeleton-stats {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.public-profile-skeleton-stat {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+}
+
+.public-profile-skeleton--number {
+  width: 32px;
+  height: 18px;
+}
+
+.public-profile-skeleton--label {
+  width: 48px;
+  height: 11px;
+}
+
+.public-profile-skeleton--username {
+  width: 132px;
+  height: 22px;
+  margin-top: 18px;
+}
+
+.public-profile-skeleton--bio {
+  width: min(240px, 80%);
+  height: 14px;
+  margin-top: 10px;
+}
+
+.public-profile-skeleton--follow-button {
+  width: 100%;
+  height: 44px;
+  margin-top: 20px;
+  border-radius: 10px;
+}
+
+.public-profile-view-all {
+  border: 0;
+  background: transparent;
+  color: #0a84ff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@keyframes public-profile-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 380px) {
+  .public-profile-page {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .public-profile-hero {
+    padding: 14px;
+  }
+
+  .public-profile-top {
+    gap: 12px;
+  }
+
+  .public-profile-avatar {
+    width: 70px;
+    height: 70px;
+  }
+
+  .public-profile-stat__number {
+    font-size: 16px;
+  }
+
+  .public-profile-stat__label {
+    font-size: 10px;
+  }
+}

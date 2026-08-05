@@ -1,0 +1,369 @@
+.workout-feed-skeleton {
+  display: grid;
+  gap: 12px;
+}
+
+.workout-card--skeleton {
+  pointer-events: none;
+}
+
+.workout-card--skeleton__exercise {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+}
+
+.skeleton {
+  border-radius: 7px;
+  background: linear-gradient(
+    90deg,
+    #242426 25%,
+    #343438 50%,
+    #242426 75%
+  );
+  background-size: 200% 100%;
+  animation: workout-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton--title {
+  width: 45%;
+  height: 16px;
+  margin-bottom: 8px;
+}
+
+.skeleton--subtitle {
+  width: 66%;
+  height: 12px;
+  margin-bottom: 14px;
+}
+
+.skeleton--image {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border-radius: 9px;
+}
+
+.skeleton--exercise-name {
+  width: 120px;
+  height: 14px;
+  margin-bottom: 6px;
+}
+
+.skeleton--set-info {
+  width: 175px;
+  height: 11px;
+}
+
+@keyframes workout-skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Home */
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.home-header h1 {
+  margin: 0;
+}
+
+.home-discover-button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 50%;
+  background: #1c1c1e;
+  color: #fff;
+  text-decoration: none;
+  transition:
+    background-color 150ms ease,
+    transform 120ms ease;
+}
+
+.home-discover-button:hover {
+  background: #242426;
+}
+
+.home-discover-button:active {
+  background: #2c2c2e;
+  transform: scale(0.94);
+}
+
+/* Workout feed */
+
+.workout-feed {
+  display: grid;
+  gap: 12px;
+}
+
+.workout-card {
+  margin-bottom: 0;
+  padding: 14px;
+  border: 1px solid #2c2c2e;
+  border-radius: 16px;
+  background: #1c1c1e;
+  color: #fff;
+}
+
+.workout-card__header {
+  margin-bottom: 0;
+}
+
+/* Author */
+
+.workout-card__author-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.workout-card__avatar-link {
+  display: block;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+.workout-card__avatar {
+  display: block;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #3a3a3c;
+  border-radius: 50%;
+  background: #2c2c2e;
+  object-fit: cover;
+}
+
+.workout-card__author-info {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+
+.workout-card__username {
+  overflow: hidden;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.2;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+a.workout-card__username:hover {
+  color: #0a84ff;
+}
+
+.workout-card__date {
+  color: #8e8e93;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* Workout summary */
+
+.workout-card__title {
+  margin: 14px 0 0;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.15px;
+}
+
+.workout-card__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 0;
+  margin-top: 8px;
+  padding-top: 9px;
+  border-top: 1px solid #2c2c2e;
+  color: #8e8e93;
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.workout-card__metrics span {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.workout-card__metrics span:not(:last-child)::after {
+  width: 3px;
+  height: 3px;
+  margin: 0 9px;
+  border-radius: 50%;
+  background: #5a5a5e;
+  content: '';
+}
+
+/* Exercise preview */
+
+.workout-card__exercises {
+  display: grid;
+  gap: 1px;
+  margin-top: 10px;
+}
+
+.workout-exercise-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+}
+
+.workout-exercise-row__image {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border: 1px solid #303034;
+  border-radius: 50%;
+  background: #2c2c2e;
+  object-fit: cover;
+}
+
+.workout-exercise-row__image--placeholder {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(10, 132, 255, 0.25),
+      rgba(10, 132, 255, 0.06)
+    ),
+    #2c2c2e;
+}
+
+.workout-exercise-row__content {
+  min-width: 0;
+  flex: 1;
+}
+
+.workout-exercise-row__name {
+  overflow: hidden;
+  margin: 0;
+  color: #f5f5f7;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workout-exercise-row__sets {
+  overflow: hidden;
+  margin: 3px 0 0;
+  color: #8e8e93;
+  font-size: 12px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Show-more action */
+
+.workout-card__view-more {
+  display: flex;
+  width: 100%;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 0 10px;
+  border: 1px solid rgba(10, 132, 255, 0.22);
+  border-radius: 9px;
+  background: transparent;
+  color: #0a84ff;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 120ms ease;
+}
+
+.workout-card__view-more:hover {
+  border-color: rgba(10, 132, 255, 0.4);
+  background: rgba(10, 132, 255, 0.1);
+}
+
+.workout-card__view-more:active {
+  transform: scale(0.985);
+}
+
+/* Empty and error states */
+
+.workout-feed-message {
+  padding: 16px;
+  color: #8e8e93;
+  text-align: center;
+}
+
+.workout-feed-message--error {
+  color: #ff453a;
+}
+
+/* Accessibility */
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .home-discover-button,
+  .workout-card__view-more {
+    transition: none;
+    animation: none;
+  }
+}
+
+.workout-card .workout-card__header {
+  display: block;
+  margin-bottom: 0;
+}
+
+.workout-card .workout-card__author-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.workout-card .workout-card__title {
+  display: block;
+  margin: 14px 0 0;
+}
+
+.workout-card .workout-card__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 0;
+  margin-top: 8px;
+  padding-top: 9px;
+}
+
+.workout-card__header--compact .workout-card__title {
+  margin-top: 0;
+}
+
+.workout-card__title-date {
+  color: #8e8e93;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+}

@@ -1,26 +1,75 @@
+import { useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import '../css/home.css';
 
-const IMAGE_BASE_URL = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
+const IMAGE_BASE_URL =
+  'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
 
-function resolveImageUrl(img) {
-  if (!img) return null;
-  return img.startsWith('http') ? img : `${IMAGE_BASE_URL}${img}`;
+function ExerciseDisplaySkeleton() {
+  return (
+    <div
+      className="workout-feed-skeleton"
+      aria-busy="true"
+      aria-label="Loading workouts"
+    >
+      {[0, 1, 2].map((item) => (
+        <div className="workout-card workout-card--skeleton" key={item}>
+          <div className="skeleton skeleton--title" />
+          <div className="skeleton skeleton--subtitle" />
+
+          {[0, 1, 2].map((exercise) => (
+            <div
+              className="workout-card--skeleton__exercise"
+              key={exercise}
+            >
+              <div className="skeleton skeleton--image" />
+
+              <div>
+                <div className="skeleton skeleton--exercise-name" />
+                <div className="skeleton skeleton--set-info" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
 }
 
-function groupSetsByExercise(sets) {
+function resolveImageUrl(image) {
+  if (!image) return null;
+
+  return image.startsWith('http')
+    ? image
+    : `${IMAGE_BASE_URL}${image}`;
+}
+
+function groupSetsByExercise(sets = []) {
   const groups = {};
+
   for (const set of sets) {
     const key = set.exercise_id;
+
     if (!groups[key]) {
-      groups[key] = { name: set.exercises?.name, image: set.exercises?.images?.[0], sets: [] };
+      groups[key] = {
+        exerciseId: key,
+        name: set.exercises?.name || 'Exercise',
+        image: set.exercises?.images?.[0],
+        sets: [],
+      };
     }
+
     groups[key].sets.push(set);
   }
+
   return Object.values(groups);
 }
 
-function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString('en-US', {
+function formatDate(dateString) {
+  if (!dateString) return 'Unknown date';
+
+  return new Date(dateString).toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -29,61 +78,223 @@ function formatDate(dateStr) {
 
 function formatDuration(start, end) {
   if (!end) return 'In progress';
-  const minutes = Math.round((new Date(end) - new Date(start)) / 60000);
+
+  const minutes = Math.round(
+    (new Date(end) - new Date(start)) / 60000
+  );
+
   return `${minutes} min`;
 }
 
-export default function ExerciseDisplay({ workouts, loading, error, showAuthor = false }) {
-  if (loading) return <div style={{ color: 'white', padding: '16px' }}>Loading...</div>;
-  if (error) return <div style={{ color: 'red', padding: '16px' }}>Error: {error}</div>;
-  if (!workouts || workouts.length === 0) {
-    return <div style={{ color: '#8e8e93', padding: '16px' }}>No workouts yet.</div>;
+function formatSet(set) {
+  const weight = Number(set.weight) || 0;
+  const reps = Number(set.reps) || 0;
+
+  return `${weight}kg × ${reps}`;
+}
+
+export default function ExerciseDisplay({
+  workouts,
+  loading,
+  error,
+  authorProfile= null,
+  showAuthor = true,
+  exercisePreviewCount = 3,
+}) {
+  const [expandedWorkouts, setExpandedWorkouts] = useState({});
+
+  const hasWorkouts = workouts?.length > 0;
+  const isInitialLoading = loading && !hasWorkouts;
+
+  function toggleWorkoutExercises(workoutId) {
+    setExpandedWorkouts((current) => ({
+      ...current,
+      [workoutId]: !current[workoutId],
+    }));
+  }
+
+  if (isInitialLoading) {
+    return <ExerciseDisplaySkeleton />;
+  }
+
+  if (error && !hasWorkouts) {
+    return (
+      <div className="workout-feed-message workout-feed-message--error">
+        Could not load workouts. Try again.
+      </div>
+    );
+  }
+
+  if (!loading && !hasWorkouts) {
+    return (
+      <div className="workout-feed-message">
+        No workouts yet.
+      </div>
+    );
   }
 
   return (
-    <div>
+    <div className="workout-feed">
       {workouts.map((workout) => {
-        const exerciseGroups = groupSetsByExercise(workout.workout_sets || []);
+        const author = workout.profiles || authorProfile;
+        const username = author?.username || 'Unknown lifter';
+        const avatarUrl = author?.avatar_url || '/default-avatar.png';
+        const authorId = workout.user_id || author?.id;
+        const exerciseGroups = groupSetsByExercise(
+          workout.workout_sets || []
+        );
+
         const totalSets = workout.workout_sets?.length || 0;
+
         const totalVolume = workout.workout_sets?.reduce(
-          (sum, s) => sum + (Number(s.weight) || 0) * (Number(s.reps) || 0),
+          (sum, set) =>
+            sum +
+            (Number(set.weight) || 0) * (Number(set.reps) || 0),
           0
         );
 
+        const isExpanded = Boolean(expandedWorkouts[workout.id]);
+        const hiddenExerciseCount = Math.max(
+          0,
+          exerciseGroups.length - exercisePreviewCount
+        );
+
+        const visibleExercises = isExpanded
+          ? exerciseGroups
+          : exerciseGroups.slice(0, exercisePreviewCount);
+
         return (
-          <div className="workout-card" key={workout.id}>
-            <div style={{ marginBottom: '10px' }}>
-              {showAuthor && workout.profiles?.username && (
-                <Link to={`/profile/${workout.user_id}`} style={{ color: '#4f9dff', fontSize: '13px', textDecoration: 'none' }}>
-                  @{workout.profiles.username}
-                </Link>
-              )}
-              <p style={{ color: 'white', fontWeight: 600, margin: 0 }}>
-                {workout.name?.toUpperCase()} · {formatDate(workout.started_at)}
-              </p>
-              <p style={{ color: '#8e8e93', fontSize: '13px', margin: 0 }}>
-                {formatDuration(workout.started_at, workout.ended_at)} · {totalSets} sets · {totalVolume}kg volume
-              </p>
+          <article className="workout-card" key={workout.id}>
+            <header
+  className={`workout-card__header ${
+    showAuthor ? '' : 'workout-card__header--compact'
+  }`}
+>
+  {showAuthor && (
+    <div className="workout-card__author-row">
+      {authorId ? (
+        <Link
+          to={`/profile/${authorId}`}
+          className="workout-card__avatar-link"
+          aria-label={`View ${username}'s profile`}
+        >
+          <img
+            src={avatarUrl}
+            alt=""
+            className="workout-card__avatar"
+            onError={(event) => {
+              event.currentTarget.src = '/default-avatar.png';
+            }}
+          />
+        </Link>
+      ) : (
+        <img
+          src={avatarUrl}
+          alt=""
+          className="workout-card__avatar"
+          onError={(event) => {
+            event.currentTarget.src = '/default-avatar.png';
+          }}
+        />
+      )}
+
+      <div className="workout-card__author-info">
+        {authorId ? (
+          <Link
+            to={`/profile/${authorId}`}
+            className="workout-card__username"
+          >
+            @{username}
+          </Link>
+        ) : (
+          <span className="workout-card__username">
+            @{username}
+          </span>
+        )}
+
+        <time
+          className="workout-card__date"
+          dateTime={workout.started_at}
+        >
+          {formatDate(workout.started_at)}
+        </time>
+      </div>
+    </div>
+  )}
+
+  <h3 className="workout-card__title">
+    {workout.name?.toUpperCase() || 'WORKOUT'}
+
+    {!showAuthor && (
+      <span className="workout-card__title-date">
+        {' · '}
+        {formatDate(workout.started_at)}
+      </span>
+    )}
+  </h3>
+
+  <div className="workout-card__metrics">
+    <span>{formatDuration(workout.started_at, workout.ended_at)}</span>
+    <span>{totalSets} sets</span>
+    <span>{totalVolume.toLocaleString()}kg volume</span>
+  </div>
+</header>
+
+            <div className="workout-card__exercises">
+              {visibleExercises.map((group) => (
+                <div
+                  className="workout-exercise-row"
+                  key={group.exerciseId}
+                >
+                  {group.image ? (
+                    <img
+                      src={resolveImageUrl(group.image)}
+                      alt=""
+                      className="workout-exercise-row__image"
+                    />
+                  ) : (
+                    <div
+                      className="workout-exercise-row__image workout-exercise-row__image--placeholder"
+                      aria-hidden="true"
+                    />
+                  )}
+
+                  <div className="workout-exercise-row__content">
+                    <p className="workout-exercise-row__name">
+                      {group.name}
+                    </p>
+
+                    <p className="workout-exercise-row__sets">
+                      {group.sets.length} sets ·{' '}
+                      {group.sets.map(formatSet).join(', ')}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
 
-            {exerciseGroups.map((group, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 0' }}>
-                {group.image && (
-                  <img
-                    src={resolveImageUrl(group.image)}
-                    alt={group.name}
-                    style={{ width: '36px', height: '36px', borderRadius: '6px', objectFit: 'cover' }}
-                  />
+            {hiddenExerciseCount > 0 && (
+              <button
+                type="button"
+                className="workout-card__view-more"
+                onClick={() => toggleWorkoutExercises(workout.id)}
+                aria-expanded={isExpanded}
+              >
+                {isExpanded ? (
+                  <>
+                    Show fewer exercises
+                    <ChevronUp size={16} strokeWidth={2.5} />
+                  </>
+                ) : (
+                  <>
+                    View {hiddenExerciseCount} more{' '}
+                    {hiddenExerciseCount === 1 ? 'exercise' : 'exercises'}
+                    <ChevronDown size={16} strokeWidth={2.5} />
+                  </>
                 )}
-                <div>
-                  <p style={{ color: 'white', margin: 0, fontSize: '14px' }}>{group.name}</p>
-                  <p style={{ color: '#8e8e93', margin: 0, fontSize: '12px' }}>
-                    {group.sets.length} sets · {group.sets.map((s) => `${s.weight}kg x ${s.reps}`).join(', ')}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+              </button>
+            )}
+          </article>
         );
       })}
     </div>

@@ -1,0 +1,240 @@
+.dashboard-home {
+  padding-bottom: calc(112px + env(safe-area-inset-bottom));
+}
+
+.body-scan-launcher {
+  display: flex;
+  width: 100%;
+  min-height: 82px;
+  align-items: center;
+  gap: 13px;
+  margin: 0 0 26px;
+  padding: 14px;
+  border: 1px solid rgba(10, 132, 255, 0.3);
+  border-radius: 16px;
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(10, 132, 255, 0.2),
+      transparent 56%
+    ),
+    #1c1c1e;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    transform 120ms ease;
+}
+
+.body-scan-launcher:hover {
+  border-color: rgba(10, 132, 255, 0.56);
+  background-color: #222226;
+}
+
+.body-scan-launcher:active {
+  transform: scale(0.985);
+}
+
+.body-scan-launcher__icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 13px;
+  background: #0a84ff;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(10, 132, 255, 0.25);
+}
+
+.body-scan-launcher__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.body-scan-launcher__title {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.15px;
+}
+
+.body-scan-launcher__subtitle {
+  overflow: hidden;
+  color: #8e8e93;
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.body-scan-launcher__chevron {
+  flex: 0 0 auto;
+  color: #0a84ff;
+}
+
+.body-scan-overlay {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  overflow-y: auto;
+  background: #000;
+  animation: body-scan-enter 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.body-scan-overlay__header {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  min-height: 64px;
+  padding: max(10px, env(safe-area-inset-top)) 16px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(18px);
+}
+
+.body-scan-overlay__back-button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #1c1c1e;
+  color: #fff;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    transform 120ms ease;
+}
+
+.body-scan-overlay__back-button:active {
+  background: #2c2c2e;
+  transform: scale(0.94);
+}
+
+.body-scan-overlay__title {
+  margin: 0;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.body-scan-overlay__content {
+  width: min(100%, 720px);
+  margin: 0 auto;
+  padding-bottom: calc(32px + env(safe-area-inset-bottom));
+}
+
+.dashboard-top-lifts-section {
+  padding-bottom: 4px;
+}
+
+.dashboard-error {
+  margin-top: 30px;
+  padding: 24px 18px;
+  border: 1px solid rgba(255, 69, 58, 0.35);
+  border-radius: 16px;
+  background: rgba(255, 69, 58, 0.1);
+  text-align: center;
+}
+
+.dashboard-error h1 {
+  margin: 0;
+  color: #fff;
+  font-size: 18px;
+}
+
+.dashboard-error p {
+  margin: 8px 0 0;
+  color: #ff9d97;
+  font-size: 14px;
+}
+
+.dashboard-skeleton-card {
+  display: flex;
+  min-height: 82px;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 26px;
+  padding: 14px;
+  border: 1px solid #2c2c2e;
+  border-radius: 16px;
+  background: #1c1c1e;
+}
+
+.dashboard-skeleton-card__icon {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  border-radius: 13px;
+}
+
+.dashboard-skeleton-card__copy {
+  display: grid;
+  gap: 8px;
+}
+
+.dashboard-skeleton-card__title {
+  width: 92px;
+  height: 16px;
+}
+
+.dashboard-skeleton-card__subtitle {
+  width: 190px;
+  height: 13px;
+}
+
+.dashboard-skeleton-section-title {
+  width: 108px;
+  height: 22px;
+  margin-bottom: 14px;
+}
+
+.dashboard-skeleton-workout {
+  width: 100%;
+  height: 104px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+}
+
+@keyframes body-scan-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .body-scan-launcher,
+  .body-scan-overlay,
+  .body-scan-overlay__back-button {
+    transition: none;
+    animation: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .body-scan-launcher__subtitle {
+    font-size: 12px;
+  }
+
+  .body-scan-launcher__icon {
+    width: 44px;
+    height: 44px;
+  }
+}

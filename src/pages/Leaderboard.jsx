@@ -9,6 +9,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useExerciseLeaderboard } from '../hooks/useExerciseLeaderboard';
 import { useFollowedUserIds } from '../hooks/useFollowedUserIds';
 import ExercisePicker from '../components/ExercisePicker';
+import '../css/leaderboard.css';
 
 const IMAGE_BASE_URL = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -18,7 +19,7 @@ export default function Leaderboard() {
   const navigate = useNavigate();
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [friendsOnly, setFriendsOnly] = useState(false);
-
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
   const { followedIds, loading: followedLoading } = useFollowedUserIds(user?.id);
 
   // Scope passed to the leaderboard query: null = global, array = friends only.
@@ -38,17 +39,41 @@ export default function Leaderboard() {
     return img.startsWith('http') ? img : `${IMAGE_BASE_URL}${img}`;
   }
 
-  if (!selectedExercise) {
-    return (
-      <div style={{ padding: '16px' }}>
-        <h1 style={{ color: 'white', marginBottom: '16px' }}>Leaderboards</h1>
-        <p className="subtle" style={{ marginBottom: '16px' }}>
-          Search an exercise to see the global top lifts.
+      if (!selectedExercise) {
+  return (
+    <div className="leaderboard-welcome">
+      <div className="leaderboard-welcome__content">
+        <span className="leaderboard-welcome__icon">🏆</span>
+
+        <h1 className="leaderboard-welcome__title">
+          Leaderboards
+        </h1>
+
+        <p className="leaderboard-welcome__description">
+          See how lifters rank around the world and compare your estimated
+          one-rep max with friends.
         </p>
-        <ExercisePicker onSelect={setSelectedExercise} />
+
+        <button
+          className="leaderboard-welcome__button"
+          onClick={() => setIsPickerOpen(true)}
+        >
+          Search leaderboards
+        </button>
       </div>
-    );
-  }
+
+      {isPickerOpen && (
+        <ExercisePicker
+          onClose={() => setIsPickerOpen(false)}
+          onSelect={(exercise) => {
+            setSelectedExercise(exercise);
+            setIsPickerOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
 
   return (
     <div style={{ padding: '16px' }}>

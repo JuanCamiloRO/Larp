@@ -5,7 +5,27 @@ import { useAuth } from '../hooks/useAuth';
 import { useRandomProfiles } from '../hooks/useRandomProfiles';
 import { UserPlus, UserCheck } from 'lucide-react';
 import FollowButton from './FollowButton';
-import '../css/style.css';
+
+function FollowCardSkeleton() {
+  return (
+    <div className="follow-card follow-card--skeleton">
+      <h3 className="follow-card-title">Who to follow</h3>
+
+      {[0, 1, 2].map((item) => (
+        <div className="follow-skeleton-row" key={item}>
+          <div className="follow-skeleton follow-skeleton--avatar" />
+
+          <div className="follow-skeleton-info">
+            <div className="follow-skeleton follow-skeleton--name" />
+            <div className="follow-skeleton follow-skeleton--handle" />
+          </div>
+
+          <div className="follow-skeleton follow-skeleton--button" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function FollowCard() {
   const { user } = useAuth();
@@ -63,13 +83,8 @@ export default function FollowCard() {
   const visible = suggestions.filter((u) => !hidden[u.id]);
 
   if (loading) {
-    return (
-      <div className="follow-card">
-        <h3 className="follow-card-title">Who to follow</h3>
-        <p className="follow-card-empty">Loading suggestions…</p>
-      </div>
-    );
-  }
+  return <FollowCardSkeleton />;
+}
 
   if (visible.length === 0) {
     return (

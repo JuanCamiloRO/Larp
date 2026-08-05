@@ -1,192 +1,227 @@
-import { useState } from "react"
-import { useProfile } from "../hooks/useProfile"
-import Graph from "../components/Graph"
-import ExerciseDisplay from "../components/ExerciseDisplay"
-import MuscleHeatmap from "../components/MuscleHeatmap"
-import EditTopLifts from "../components/EditTopLifts"
-import BodyScan from "../components/BodyScan"
-import "../css/style.css"
-import { useWorkout } from "../hooks/useWorkout"
-import { useAuth } from "../hooks/useAuth"
+import { useState } from 'react';
+import { ArrowLeft, ChevronRight, ScanLine } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { useProfile } from '../hooks/useProfile';
+import { useWorkout } from '../hooks/useWorkout';
+import ExerciseDisplay from '../components/ExerciseDisplay';
+import MuscleHeatmap from '../components/MuscleHeatmap';
+import EditTopLifts from '../components/EditTopLifts';
+import BodyScan from '../components/BodyScan';
+import '../css/dashboard.css';
+import '../css/social.css';
+
+function DashboardSkeleton() {
+  return (
+    <main
+      className="public-profile-page dashboard-home page-transition"
+      aria-busy="true"
+      aria-label="Loading dashboard"
+    >
+      <section className="public-profile-hero public-profile-hero--skeleton">
+        <div className="public-profile-top">
+          <div className="public-profile-skeleton public-profile-skeleton--avatar" />
+
+          <div className="public-profile-skeleton-stats">
+            {[0, 1, 2].map((item) => (
+              <div className="public-profile-skeleton-stat" key={item}>
+                <div className="public-profile-skeleton public-profile-skeleton--number" />
+                <div className="public-profile-skeleton public-profile-skeleton--label" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="public-profile-skeleton public-profile-skeleton--username" />
+        <div className="public-profile-skeleton public-profile-skeleton--bio" />
+      </section>
+
+      <div className="dashboard-skeleton-card">
+        <div className="public-profile-skeleton dashboard-skeleton-card__icon" />
+
+        <div className="dashboard-skeleton-card__copy">
+          <div className="public-profile-skeleton dashboard-skeleton-card__title" />
+          <div className="public-profile-skeleton dashboard-skeleton-card__subtitle" />
+        </div>
+      </div>
+
+      <section className="public-profile-section">
+        <div className="public-profile-skeleton dashboard-skeleton-section-title" />
+
+        {[0, 1].map((item) => (
+          <div className="public-profile-skeleton dashboard-skeleton-workout" key={item} />
+        ))}
+      </section>
+    </main>
+  );
+}
 
 export default function Dashboard() {
-  const [mostrarScan, setMostrarScan] = useState(false)
-  const { user } = useAuth()
-  const { profile, loading: profileLoading, error: profileError } = useProfile(user?.id)
-  const { workouts, loading: workoutsLoading, error: workoutsError } = useWorkout(user?.id)
+  const [isBodyScanOpen, setIsBodyScanOpen] = useState(false);
 
-  const workoutCount = workouts?.length || 0
+  const { user } = useAuth();
+
+  const {
+    profile,
+    loading: profileLoading,
+    error: profileError,
+  } = useProfile(user?.id);
+
+  const {
+    workouts,
+    loading: workoutsLoading,
+    error: workoutsError,
+  } = useWorkout(user?.id);
+
+  const recentWorkouts = workouts?.slice(0, 3) || [];
+  const workoutCount = workouts?.length || 0;
+
+  if (profileLoading) {
+    return <DashboardSkeleton />;
+  }
+
+  if (profileError) {
+    return (
+      <main className="public-profile-page dashboard-home page-transition">
+        <div className="dashboard-error">
+          <h1>Couldn’t load your profile</h1>
+          <p>{profileError}</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <div className="dashboard-page">
-      {/* OVERLAY BODY SCAN */}
-      {mostrarScan && (
+    <main className="public-profile-page dashboard-home page-transition">
+      {isBodyScanOpen && (
         <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            background: "#0f172a",
-            zIndex: 1000,
-            overflowY: "auto",
-          }}
+          className="body-scan-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Body Scan"
         >
-          <button
-            onClick={() => setMostrarScan(false)}
-            style={{
-              position: "fixed",
-              top: 16,
-              left: 16,
-              zIndex: 1001,
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 10,
-              padding: "8px 14px",
-              color: "#fff",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              backdropFilter: "blur(10px)",
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-            Volver
-          </button>
-          <BodyScan onClose={() => setMostrarScan(false)} />
+          <header className="body-scan-overlay__header">
+            <button
+              type="button"
+              className="body-scan-overlay__back-button"
+              onClick={() => setIsBodyScanOpen(false)}
+              aria-label="Close Body Scan"
+            >
+              <ArrowLeft size={22} strokeWidth={2.5} />
+            </button>
+
+            <h1 className="body-scan-overlay__title">Body Scan</h1>
+
+            <div className="body-scan-overlay__spacer" aria-hidden="true" />
+          </header>
+
+          <div className="body-scan-overlay__content">
+            <BodyScan onClose={() => setIsBodyScanOpen(false)} />
+          </div>
         </div>
       )}
 
-      <div className="profile-header">
-        <div className="profile-top">
+      <section className="public-profile-hero">
+        <div className="public-profile-top">
           <img
-            className="profile-avatar"
+            className="public-profile-avatar"
             src={profile?.avatar_url || '/default-avatar.png'}
-            alt={profile?.username || 'User avatar'}
+            alt={profile?.username || 'Your avatar'}
+            onError={(event) => {
+              event.currentTarget.src = '/default-avatar.png';
+            }}
           />
 
-          <div className="profile-stats">
-            <div className="stat">
-              <span className="stat-number">{workoutCount}</span>
-              <span className="stat-label">Workouts</span>
+          <div className="public-profile-stats">
+            <div className="public-profile-stat">
+              <span className="public-profile-stat__number">
+                {workoutsLoading ? '—' : workoutCount}
+              </span>
+              <span className="public-profile-stat__label">Workouts</span>
             </div>
-            <div className="stat">
-              <span className="stat-number">{profile?.followers ?? 0}</span>
-              <span className="stat-label">Followers</span>
+
+            <div className="public-profile-stat">
+              <span className="public-profile-stat__number">
+                {profile?.followers ?? 0}
+              </span>
+              <span className="public-profile-stat__label">Followers</span>
             </div>
-            <div className="stat">
-              <span className="stat-number">{profile?.following ?? 0}</span>
-              <span className="stat-label">Following</span>
+
+            <div className="public-profile-stat">
+              <span className="public-profile-stat__number">
+                {profile?.following ?? 0}
+              </span>
+              <span className="public-profile-stat__label">Following</span>
             </div>
           </div>
         </div>
 
-        <div className="profile-info">
-          <h1 className="profile-username">{profile?.username}</h1>
-          {profile?.bio && <p className="profile-bio">{profile.bio}</p>}
+        <div className="public-profile-info">
+          <h1 className="public-profile-username">
+            {profile?.username || 'Your profile'}
+          </h1>
+
+          {profile?.bio && (
+            <p className="public-profile-bio">{profile.bio}</p>
+          )}
         </div>
-      </div>
+      </section>
 
-      {/* BOTÓN BODY SCAN */}
-      <div style={{ padding: "0 16px", marginBottom: 8 }}>
-        <button
-          onClick={() => setMostrarScan(true)}
-          style={{
-            width: "100%",
-            padding: "18px 20px",
-            borderRadius: 16,
-            border: "1px solid rgba(212, 175, 55, 0.25)",
-            background: "linear-gradient(135deg, rgba(212,175,55,0.14), rgba(184,134,11,0.06))",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 14,
-            cursor: "pointer",
-            transition: "all 0.2s ease",
-          }}
-          onTouchStart={(e) => {
-            e.currentTarget.style.transform = "scale(0.98)"
-            e.currentTarget.style.borderColor = "rgba(212, 175, 55, 0.5)"
-          }}
-          onTouchEnd={(e) => {
-            e.currentTarget.style.transform = "scale(1)"
-            e.currentTarget.style.borderColor = "rgba(212, 175, 55, 0.25)"
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                background: "linear-gradient(135deg, #d4af37, #b8860b)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 4px 20px rgba(212,175,55,0.25)",
-                flexShrink: 0,
-              }}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 16v-4" />
-                <path d="M12 8h.01" />
-              </svg>
-            </div>
-            <div style={{ textAlign: "left" }}>
-              <span
-                style={{
-                  display: "block",
-                  fontSize: 16,
-                  fontWeight: 800,
-                  color: "#fff",
-                  letterSpacing: 0.3,
-                }}
-              >
-                Body Scan
-              </span>
-              <span
-                style={{
-                  display: "block",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: "rgba(255,255,255,0.35)",
-                  marginTop: 2,
-                }}
-              >
-                Analiza tu morfología y potencial
-              </span>
-            </div>
-          </div>
+      <button
+        type="button"
+        className="body-scan-launcher"
+        onClick={() => setIsBodyScanOpen(true)}
+      >
+        <span className="body-scan-launcher__icon" aria-hidden="true">
+          <ScanLine size={23} strokeWidth={2.25} />
+        </span>
 
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="rgba(212,175,55,0.6)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ flexShrink: 0 }}
-          >
-            <path d="M9 18l6-6-6-6" />
-          </svg>
-        </button>
-      </div>
+        <span className="body-scan-launcher__copy">
+          <span className="body-scan-launcher__title">Body Scan</span>
+          <span className="body-scan-launcher__subtitle">
+            Analyze your physique and potential
+          </span>
+        </span>
 
-      <div className="dashboard-workouts">
-        <h2 className="dashboard-section-title">Workouts</h2>
-        <ExerciseDisplay workouts={workouts} loading={workoutsLoading} error={workoutsError} />
-      </div>
-      <MuscleHeatmap />
-      <EditTopLifts />
-    </div>
-  )
+        <ChevronRight
+          className="body-scan-launcher__chevron"
+          size={22}
+          strokeWidth={2.5}
+          aria-hidden="true"
+        />
+      </button>
+
+      <section className="public-profile-section">
+        <div className="public-profile-section__header">
+          <h2 className="public-profile-section__title">Workouts</h2>
+        </div>
+
+        <ExerciseDisplay
+          workouts={recentWorkouts}
+          loading={workoutsLoading}
+          error={workoutsError}
+          authorProfile={profile}
+          showAuthor={false}
+          exercisePreviewCount={3}
+        />
+      </section>
+
+      <section className="public-profile-section">
+        <div className="public-profile-section__header">
+          <h2 className="public-profile-section__title">
+            Muscle activity
+          </h2>
+        </div>
+
+        <MuscleHeatmap userId={user?.id} />
+      </section>
+
+      <section className="public-profile-section dashboard-top-lifts-section">
+        <div className="public-profile-section__header">
+          <h2 className="public-profile-section__title">Top lifts</h2>
+        </div>
+
+        <EditTopLifts />
+      </section>
+    </main>
+  );
 }

@@ -121,3 +121,202 @@
   background: #1c1c1e;
   flex-shrink: 0;
 }
+
+.muscle-ranks-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 16px 16px calc(104px + env(safe-area-inset-bottom));
+  background: #000;
+}
+
+.muscle-ranks-page__header {
+  margin-bottom: 20px;
+}
+
+.muscle-ranks-page__title {
+  margin: 0;
+  color: #fff;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.7px;
+}
+
+.muscle-ranks-page__subtitle {
+  margin: 6px 0 0;
+  color: #8e8e93;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.muscle-ranks-skeleton-list {
+  gap: 12px;
+}
+
+.rank-card--skeleton {
+  pointer-events: none;
+}
+
+.muscle-ranks-skeleton {
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    #242426 25%,
+    #343438 50%,
+    #242426 75%
+  );
+  background-size: 200% 100%;
+  animation: muscle-ranks-shimmer 1.2s ease-in-out infinite;
+}
+
+.muscle-ranks-skeleton--title {
+  width: 175px;
+  height: 31px;
+  border-radius: 9px;
+}
+
+.muscle-ranks-skeleton--subtitle {
+  width: min(250px, 72%);
+  height: 15px;
+  margin-top: 10px;
+}
+
+.muscle-ranks-skeleton--muscle-name {
+  width: 112px;
+  height: 17px;
+}
+
+.muscle-ranks-skeleton--tier-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+}
+
+.muscle-ranks-skeleton--percentage {
+  width: 34px;
+  height: 14px;
+  margin-bottom: 7px;
+  margin-left: auto;
+}
+
+.muscle-ranks-skeleton--progress {
+  width: 62%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.muscle-ranks-skeleton--tier-label {
+  width: 76px;
+  height: 14px;
+}
+
+.muscle-ranks-empty {
+  display: flex;
+  min-height: 260px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 22px;
+  border: 1px solid #2c2c2e;
+  border-radius: 16px;
+  background: #1c1c1e;
+  text-align: center;
+}
+
+.muscle-ranks-empty__icon {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  margin-bottom: 16px;
+  border-radius: 50%;
+  background: rgba(10, 132, 255, 0.14);
+  font-size: 26px;
+}
+
+.muscle-ranks-empty h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.muscle-ranks-empty p {
+  max-width: 290px;
+  margin: 9px 0 0;
+  color: #8e8e93;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.muscle-rank-row {
+  transition:
+    background-color 180ms ease,
+    transform 120ms ease;
+}
+
+.muscle-rank-row:active {
+  transform: scale(0.985);
+}
+
+.muscle-rank-detail {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease;
+}
+
+.muscle-rank-detail.is-expanded {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.muscle-rank-detail-inner {
+  min-height: 0;
+  overflow: hidden;
+  transform: translateY(-6px);
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.muscle-rank-detail.is-expanded .muscle-rank-detail-inner {
+  transform: translateY(0);
+}
+
+.muscle-chevron {
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.muscle-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+.muscle-rank-empty-message {
+  padding: 8px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .muscle-rank-row,
+  .muscle-rank-detail,
+  .muscle-rank-detail-inner,
+  .muscle-chevron {
+    transition: none;
+  }
+}
+
+@keyframes muscle-ranks-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .muscle-ranks-skeleton {
+    animation: none;
+  }
+}

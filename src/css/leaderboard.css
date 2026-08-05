@@ -1,0 +1,48 @@
+.leaderboard-welcome {
+  min-height: calc(100vh - 80px);
+  display: grid;
+  place-items: center;
+  padding: 24px 16px 110px;
+  box-sizing: border-box;
+}
+
+.leaderboard-welcome__content {
+  width: min(100%, 380px);
+  text-align: center;
+}
+
+.leaderboard-welcome__icon {
+  display: grid;
+  width: 74px;
+  height: 74px;
+  margin: 0 auto 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: #2c2c2e;
+  font-size: 34px;
+}
+
+.leaderboard-welcome__title {
+  margin: 0 0 10px;
+  color: white;
+  font-size: 28px;
+}
+
+.leaderboard-welcome__description {
+  margin: 0 0 24px;
+  color: #8e8e93;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.leaderboard-welcome__button {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 10px;
+  background: #0a84ff;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}

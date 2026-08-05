@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -8,17 +8,34 @@ import ExerciseRankBadge from '../components/ExerciseRankBadge';
 import PRToast from '../components/PRToast';
 import WorkoutSummary from '../components/WorkoutSummary';
 import SessionMuscleMap from '../components/SessionMuscleMap';
+import '../css/workout.css';
 
-const IMAGE_BASE_URL = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
+const IMAGE_BASE_URL =
+  'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
+
+const EMPTY_SET = {
+  dbId: null,
+  reps: '',
+  weight: '',
+  done: false,
+  isPR: false,
+  saving: false,
+};
 
 export default function Workout() {
   const { user, loading: authLoading } = useAuth();
+
   const {
-    workoutId, setWorkoutId,
-    name, setName,
-    startedAt, setStartedAt,
-    endedAt, setEndedAt,
-    exercises, setExercises,
+    workoutId,
+    setWorkoutId,
+    name,
+    setName,
+    startedAt,
+    setStartedAt,
+    endedAt,
+    setEndedAt,
+    exercises,
+    setExercises,
     resetWorkout,
   } = useWorkoutContext();
 
@@ -29,7 +46,8 @@ export default function Workout() {
   const [summary, setSummary] = useState(null);
 
   useEffect(() => {
-    if (!toast) return;
+    if (!toast) return undefined;
+
     const timer = setTimeout(() => setToast(null), 2500);
     return () => clearTimeout(timer);
   }, [toast]);
@@ -41,91 +59,205 @@ export default function Workout() {
 
   async function ensureWorkout() {
     if (workoutId) return workoutId;
-    setStartedAt(new Date());
+
+    const now = new Date();
+    setStartedAt(now);
+
     const { data, error } = await supabase
       .from('workouts')
-      .insert({ user_id: user?.id })
+      .insert({ user_id: user.id })
       .select()
       .single();
-    if (error) return null;
+
+    if (error) {
+      console.error('Failed to create workout:', error);
+      return null;
+    }
+
     setWorkoutId(data.id);
     return data.id;
   }
 
-  function addExercise(ex) {
-    setExercises((prev) => [
-      ...prev,
-      { ...ex, sets: [{ dbId: null, reps: '', weight: '', done: false, isPR: false }] },
+  async function getPreviousSetsForExercise(exerciseId) {
+    const { data: previousWorkout, error: workoutError } = await supabase
+      .from('workouts')
+      .select(`
+        id,
+        ended_at,
+        workout_sets!inner(exercise_id)
+      `)
+      .eq('user_id', user.id)
+      .eq('workout_sets.exercise_id', exerciseId)
+      .not('ended_at', 'is', null)
+      .order('ended_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (workoutError) {
+      console.error('Failed to fetch previous workout:', workoutError);
+      return {};
+    }
+
+    if (!previousWorkout) return {};
+
+    const { data: previousSets, error: setsError } = await supabase
+      .from('workout_sets')
+      .select('set_number, weight, reps')
+      .eq('workout_id', previousWorkout.id)
+      .eq('exercise_id', exerciseId)
+      .order('set_number', { ascending: true });
+
+    if (setsError) {
+      console.error('Failed to fetch previous sets:', setsError);
+      return {};
+    }
+
+    return (previousSets || []).reduce((setsByNumber, set) => {
+      setsByNumber[set.set_number] = {
+        weight: set.weight,
+        reps: set.reps,
+      };
+      return setsByNumber;
+    }, {});
+  }
+
+  async function addExercise(exercise) {
+    const previousSets = await getPreviousSetsForExercise(exercise.id);
+
+    setExercises((currentExercises) => [
+      ...currentExercises,
+      {
+        ...exercise,
+        previousSets,
+        sets: [{ ...EMPTY_SET }],
+      },
     ]);
+
     setShowPicker(false);
   }
 
-  async function removeExercise(exIndex) {
-    const ex = exercises[exIndex];
-    const dbIds = ex.sets.filter((s) => s.dbId).map((s) => s.dbId);
+  async function removeExercise(exerciseIndex) {
+    const exercise = exercises[exerciseIndex];
+    const dbIds = exercise.sets.filter((set) => set.dbId).map((set) => set.dbId);
 
     if (dbIds.length > 0) {
-      await supabase.from('workout_sets').delete().in('id', dbIds);
+      const { error } = await supabase
+        .from('workout_sets')
+        .delete()
+        .in('id', dbIds);
+
+      if (error) {
+        console.error('Failed to remove exercise sets:', error);
+        return;
+      }
     }
 
-    setExercises((prev) => prev.filter((_, i) => i !== exIndex));
+    setExercises((currentExercises) =>
+      currentExercises.filter((_, index) => index !== exerciseIndex)
+    );
   }
 
-  function addSet(exIndex) {
-    setExercises((prev) =>
-      prev.map((ex, i) =>
-        i === exIndex
-          ? { ...ex, sets: [...ex.sets, { dbId: null, reps: '', weight: '', done: false, isPR: false }] }
-          : ex
+  function addSet(exerciseIndex) {
+    setExercises((currentExercises) =>
+      currentExercises.map((exercise, index) =>
+        index === exerciseIndex
+          ? {
+              ...exercise,
+              sets: [...exercise.sets, { ...EMPTY_SET }],
+            }
+          : exercise
       )
     );
   }
 
-  async function deleteSet(exIndex, setIndex) {
-    const ex = exercises[exIndex];
-    const set = ex.sets[setIndex];
+  async function deleteSet(exerciseIndex, setIndex) {
+    const set = exercises[exerciseIndex].sets[setIndex];
 
     if (set.dbId) {
-      await supabase.from('workout_sets').delete().eq('id', set.dbId);
+      const { error } = await supabase
+        .from('workout_sets')
+        .delete()
+        .eq('id', set.dbId);
+
+      if (error) {
+        console.error('Failed to delete set:', error);
+        return;
+      }
     }
 
-    setExercises((prev) =>
-      prev.map((e, i) =>
-        i === exIndex
-          ? { ...e, sets: e.sets.filter((_, j) => j !== setIndex) }
-          : e
+    setExercises((currentExercises) =>
+      currentExercises.map((exercise, index) =>
+        index === exerciseIndex
+          ? {
+              ...exercise,
+              sets: exercise.sets.filter((_, currentSetIndex) => currentSetIndex !== setIndex),
+            }
+          : exercise
       )
     );
   }
 
-  function updateSet(exIndex, setIndex, field, value) {
-    setExercises((prev) =>
-      prev.map((ex, i) =>
-        i === exIndex
+  function updateSet(exerciseIndex, setIndex, field, value) {
+    setExercises((currentExercises) =>
+      currentExercises.map((exercise, index) =>
+        index === exerciseIndex
           ? {
-              ...ex,
-              sets: ex.sets.map((s, j) =>
-                j === setIndex ? { ...s, [field]: value } : s
+              ...exercise,
+              sets: exercise.sets.map((set, currentSetIndex) =>
+                currentSetIndex === setIndex ? { ...set, [field]: value } : set
               ),
             }
-          : ex
+          : exercise
       )
     );
   }
 
-  async function toggleSetDone(exIndex, setIndex) {
-    const ex = exercises[exIndex];
-    const set = ex.sets[setIndex];
+ async function toggleSetDone(exerciseIndex, setIndex) {
+  const exercise = exercises[exerciseIndex];
+  const set = exercise.sets[setIndex];
 
-    if (!set.done) {
-      const id = await ensureWorkout();
-      if (!id) return;
+  // Prevent double taps while this set is being saved.
+  if (set.saving) return;
+
+  if (!set.done) {
+    if (set.weight === '' || set.reps === '') {
+      return;
+    }
+
+    // 1. Update the UI immediately.
+    setExercises((currentExercises) =>
+      currentExercises.map((currentExercise, index) =>
+        index === exerciseIndex
+          ? {
+              ...currentExercise,
+              sets: currentExercise.sets.map((currentSet, currentSetIndex) =>
+                currentSetIndex === setIndex
+                  ? {
+                      ...currentSet,
+                      done: true,
+                      saving: true,
+                      isPR: false,
+                    }
+                  : currentSet
+              ),
+            }
+          : currentExercise
+      )
+    );
+
+    try {
+      // 2. Save in the background.
+      const currentWorkoutId = await ensureWorkout();
+
+      if (!currentWorkoutId) {
+        throw new Error('Could not create workout');
+      }
 
       const { data, error } = await supabase
         .from('workout_sets')
         .insert({
-          workout_id: id,
-          exercise_id: ex.id,
+          workout_id: currentWorkoutId,
+          exercise_id: exercise.id,
           reps: Number(set.reps),
           weight: Number(set.weight),
           set_number: setIndex + 1,
@@ -133,222 +265,459 @@ export default function Workout() {
         .select()
         .single();
 
-        console.log('Adding set to workout:', { workout_id: id, exercise_id: ex.id, reps: set.reps, weight: set.weight, set_number: setIndex + 1 });
-      if (error) return;
+      if (error) throw error;
 
-      const { data: prCheck } = await supabase
+      // The set is safely saved. Remove the saving state immediately.
+      setExercises((currentExercises) =>
+        currentExercises.map((currentExercise, index) =>
+          index === exerciseIndex
+            ? {
+                ...currentExercise,
+                sets: currentExercise.sets.map((currentSet, currentSetIndex) =>
+                  currentSetIndex === setIndex
+                    ? {
+                        ...currentSet,
+                        dbId: data.id,
+                        saving: false,
+                      }
+                    : currentSet
+                ),
+              }
+            : currentExercise
+        )
+      );
+
+      // 3. Check PR after the save, without delaying the completed UI.
+      const { data: prCheck, error: prError } = await supabase
         .from('personal_records')
-        .select('id, weight, reps, estimated_1rm')
+        .select('id')
         .eq('set_id', data.id)
         .maybeSingle();
 
-      setExercises((prev) =>
-        prev.map((e, i) =>
-          i === exIndex
-            ? {
-                ...e,
-                sets: e.sets.map((s, j) =>
-                  j === setIndex
-                    ? { ...s, done: true, dbId: data.id, isPR: !!prCheck }
-                    : s
-                ),
-              }
-            : e
-        )
-      );
+      if (prError) {
+        console.error('Failed to check PR:', prError);
+        return;
+      }
 
       if (prCheck) {
-        setToast({ exercise: ex.name, weight: set.weight, reps: set.reps });
-      }
-    } else {
-      if (set.dbId) {
-        await supabase.from('workout_sets').delete().eq('id', set.dbId);
-      }
+        setExercises((currentExercises) =>
+          currentExercises.map((currentExercise, index) =>
+            index === exerciseIndex
+              ? {
+                  ...currentExercise,
+                  sets: currentExercise.sets.map((currentSet, currentSetIndex) =>
+                    currentSetIndex === setIndex
+                      ? { ...currentSet, isPR: true }
+                      : currentSet
+                  ),
+                }
+              : currentExercise
+          )
+        );
 
-      setExercises((prev) =>
-        prev.map((e, i) =>
-          i === exIndex
+        setToast({
+          exercise: exercise.name,
+          weight: set.weight,
+          reps: set.reps,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to save set:', error);
+
+      // 4. Revert the visual completion if Supabase fails.
+      setExercises((currentExercises) =>
+        currentExercises.map((currentExercise, index) =>
+          index === exerciseIndex
             ? {
-                ...e,
-                sets: e.sets.map((s, j) =>
-                  j === setIndex
-                    ? { ...s, done: false, dbId: null, isPR: false }
-                    : s
+                ...currentExercise,
+                sets: currentExercise.sets.map((currentSet, currentSetIndex) =>
+                  currentSetIndex === setIndex
+                    ? {
+                        ...currentSet,
+                        done: false,
+                        saving: false,
+                        dbId: null,
+                        isPR: false,
+                      }
+                    : currentSet
                 ),
               }
-            : e
+            : currentExercise
         )
       );
+
+      // Later: show a visible "Couldn't save set. Try again." toast here.
+    }
+
+    return;
+  }
+
+  // Existing completed set: remove it.
+  if (set.dbId) {
+    const { error } = await supabase
+      .from('workout_sets')
+      .delete()
+      .eq('id', set.dbId);
+
+    if (error) {
+      console.error('Failed to uncomplete set:', error);
+      return;
     }
   }
 
+  setExercises((currentExercises) =>
+    currentExercises.map((currentExercise, index) =>
+      index === exerciseIndex
+        ? {
+            ...currentExercise,
+            sets: currentExercise.sets.map((currentSet, currentSetIndex) =>
+              currentSetIndex === setIndex
+                ? {
+                    ...currentSet,
+                    done: false,
+                    dbId: null,
+                    isPR: false,
+                    saving: false,
+                  }
+                : currentSet
+            ),
+          }
+        : currentExercise
+    )
+  );
+}
+
   async function finishWorkout() {
-    if (workoutId) {
-      const { data: workout } = await supabase
-        .from('workouts')
-        .select('*, workout_sets(*, exercises(id, name))')
-        .eq('id', workoutId)
-        .single();
+    if (!workoutId) {
+      resetWorkout();
+      return;
+    }
 
-      const totalSets = workout.workout_sets?.length || 0;
-      const totalVolume = workout.workout_sets?.reduce(
-        (sum, s) => sum + (Number(s.weight) || 0) * (Number(s.reps) || 0),
-        0
-      );
-      const minutes = Math.round((new Date(endedAt) - new Date(startedAt)) / 60000);
+    const { data: workout, error: workoutError } = await supabase
+      .from('workouts')
+      .select('*, workout_sets(*, exercises(id, name))')
+      .eq('id', workoutId)
+      .single();
 
-      await supabase
-        .from('workouts')
-        .update({ name, ended_at: endedAt, sets: totalSets, volume: totalVolume, duration: minutes })
-        .eq('id', workoutId);
+    if (workoutError) {
+      console.error('Failed to load workout summary:', workoutError);
+      return;
+    }
 
-      const exerciseIds = [...new Set(workout.workout_sets.map((s) => s.exercises.id))];
-      const { data: ranks } = await supabase
+    const totalSets = workout.workout_sets?.length || 0;
+    const totalVolume = workout.workout_sets?.reduce(
+      (sum, set) => sum + (Number(set.weight) || 0) * (Number(set.reps) || 0),
+      0
+    );
+
+    const completedAt = endedAt || new Date();
+    const minutes = startedAt
+      ? Math.max(0, Math.round((new Date(completedAt) - new Date(startedAt)) / 60000))
+      : 0;
+
+    const { error: updateError } = await supabase
+      .from('workouts')
+      .update({
+        name,
+        ended_at: completedAt,
+        sets: totalSets,
+        volume: totalVolume,
+        duration: minutes,
+      })
+      .eq('id', workoutId);
+
+    if (updateError) {
+      console.error('Failed to finish workout:', updateError);
+      return;
+    }
+
+    const exerciseIds = [
+      ...new Set(
+        (workout.workout_sets || [])
+          .map((set) => set.exercises?.id)
+          .filter(Boolean)
+      ),
+    ];
+
+    let ranks = [];
+
+    if (exerciseIds.length > 0) {
+      const { data, error } = await supabase
         .from('exercise_ranks')
         .select('exercise_id, rank, best_1rm, exercises(name)')
         .eq('user_id', user.id)
         .in('exercise_id', exerciseIds);
 
-      setSummary({ totalSets, totalVolume, minutes, ranks: ranks || [] });
+      if (error) {
+        console.error('Failed to load ranks:', error);
+      } else {
+        ranks = data || [];
+      }
     }
+
+    setSummary({ totalSets, totalVolume, minutes, ranks });
     resetWorkout();
   }
 
   async function deleteWorkout() {
     if (workoutId) {
-      await supabase.from('workout_sets').delete().eq('workout_id', workoutId);
-      await supabase.from('workouts').delete().eq('id', workoutId);
+      const { error: setsError } = await supabase
+        .from('workout_sets')
+        .delete()
+        .eq('workout_id', workoutId);
+
+      if (setsError) {
+        console.error('Failed to delete workout sets:', setsError);
+        return;
+      }
+
+      const { error: workoutError } = await supabase
+        .from('workouts')
+        .delete()
+        .eq('id', workoutId);
+
+      if (workoutError) {
+        console.error('Failed to delete workout:', workoutError);
+        return;
+      }
     }
+
     resetWorkout();
     setConfirmingDelete(false);
   }
 
+  function openFinishConfirmation() {
+    setEndedAt(new Date());
+    setFinished(true);
+  }
+
   if (authLoading || !user) {
-    return <div style={{ color: 'white', padding: '16px' }}>Loading...</div>;
+    return <div className="workout-loading">Loading...</div>;
   }
 
   return (
-    <div style={{ padding: '16px', background: '#000', minHeight: '100vh' }}>
-      <h1 style={{ color: 'white' }}>Workout</h1>
+    <main className="workout-page">
+      <div className="workout-page__content">
+        <h1 className="workout-page__title">Workout</h1>
 
-      <PRToast toast={toast} />
+        <PRToast toast={toast} />
 
-      <SessionMuscleMap exercises={exercises} />
+        <SessionMuscleMap exercises={exercises} />
 
-      {exercises.map((ex, exIndex) => (
-        <div className="workout-card" key={ex.id}>
-          <div className="exercise-header" style={{ justifyContent: 'space-between', display: 'flex' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {ex.images?.[0] && (
-                <img
-                  className="exercise-thumb"
-                  src={resolveImageUrl(ex.images[0])}
-                  alt={ex.name}
-                />
-              )}
-              <span className="exercise-name">{ex.name}</span>
-              <ExerciseRankBadge exerciseId={ex.id} userId={user?.id} />
-            </div>
-            <button
-              onClick={() => removeExercise(exIndex)}
-              style={{ background: 'none', border: 'none', color: '#ff453a', fontSize: '18px', cursor: 'pointer' }}
-              aria-label="Remove exercise"
-            >
-              🗑
-            </button>
-          </div>
+        <section className="workout-exercises" aria-label="Workout exercises">
+          {exercises.map((exercise, exerciseIndex) => (
+            <article className="workout-card" key={exercise.id}>
+              <header className="workout-card__header">
+                <div className="workout-card__exercise-info">
+                  {exercise.images?.[0] && (
+                    <img
+                      className="workout-card__thumbnail"
+                      src={resolveImageUrl(exercise.images[0])}
+                      alt={exercise.name}
+                    />
+                  )}
 
-          {ex.sets.map((set, setIndex) => (
-            <div
-              className={`set-row ${set.done ? 'completed' : ''}`}
-              key={set.dbId ?? `local-${setIndex}`}
-              style={{ gridTemplateColumns: '32px 1fr 1fr 1fr 24px 36px 28px' }}
-            >
-              <span className="set-number">{setIndex + 1}</span>
-              <input
-                className="set-input"
-                type="number"
-                placeholder="kg"
-                value={set.weight}
-                onChange={(e) => updateSet(exIndex, setIndex, 'weight', e.target.value)}
-              />
-              <input
-                className="set-input"
-                type="number"
-                placeholder="reps"
-                value={set.reps}
-                onChange={(e) => updateSet(exIndex, setIndex, 'reps', e.target.value)}
-              />
-              <span className="set-pr-icon">{set.isPR ? '🥇' : ''}</span>
-              <button
-                className={`check-btn ${set.done ? 'active' : ''}`}
-                onClick={() => toggleSetDone(exIndex, setIndex)}
-              >
-                ✓
+                  <span className="workout-card__exercise-name">{exercise.name}</span>
+
+                  <ExerciseRankBadge exerciseId={exercise.id} userId={user.id} />
+                </div>
+
+                <button
+                  className="icon-button icon-button--delete"
+                  onClick={() => removeExercise(exerciseIndex)}
+                  aria-label={`Remove ${exercise.name}`}
+                >
+                  🗑
+                </button>
+              </header>
+
+              <div className="set-table">
+                <div className="set-table__header">
+                  <span>Set</span>
+                  <span>Previous</span>
+                  <span>Weight</span>
+                  <span>Reps</span>
+                  <span aria-hidden="true" />
+                  <span aria-hidden="true" />
+                  <span aria-hidden="true" />
+                </div>
+
+                {exercise.sets.map((set, setIndex) => {
+                  const previous = exercise.previousSets?.[setIndex + 1];
+
+                  return (
+                    <div
+                      className={`set-row ${set.done ? 'set-row--completed' : ''}`}
+                      key={set.dbId ?? `local-${setIndex}`}
+                    >
+                      <span className="set-row__number">{setIndex + 1}</span>
+
+                      <span
+                        className={`set-row__previous ${previous ? '' : 'set-row__previous--empty'}`}
+                        title={
+                          previous
+                            ? `Previous: ${previous.weight} kg × ${previous.reps} reps`
+                            : 'No previous value'
+                        }
+                      >
+                        {previous ? `${previous.weight} × ${previous.reps}` : '—'}
+                      </span>
+
+                      <input
+                        className="set-row__input"
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        inputMode="decimal"
+                        placeholder={previous ? previous.weight : 'weight'}
+                        value={set.weight}
+                        disabled={set.done}
+                        onChange={(event) =>
+                          updateSet(exerciseIndex, setIndex, 'weight', event.target.value)
+                        }
+                        aria-label={`Weight for set ${setIndex + 1}`}
+                      />
+
+                      <input
+                        className="set-row__input"
+                        type="number"
+                        min="0"
+                        step="1"
+                        inputMode="numeric"
+                        placeholder={previous ? previous.reps : 'reps'}
+                        value={set.reps}
+                        disabled={set.done}
+                        onChange={(event) =>
+                          updateSet(exerciseIndex, setIndex, 'reps', event.target.value)
+                        }
+                        aria-label={`Reps for set ${setIndex + 1}`}
+                      />
+
+                      <span className="set-row__pr-icon">{set.isPR ? '🥇' : ''}</span>
+
+                      <button
+  className={`set-row__check-button ${
+    set.done ? 'set-row__check-button--active' : ''
+  }`}
+  onClick={() => toggleSetDone(exerciseIndex, setIndex)}
+  disabled={set.saving}
+  aria-label={
+    set.saving
+      ? `Saving set ${setIndex + 1}`
+      : set.done
+        ? `Mark set ${setIndex + 1} as incomplete`
+        : `Complete set ${setIndex + 1}`
+  }
+>
+  {set.saving ? '…' : '✓'}
+</button>
+
+                      <button
+                        className="set-row__delete-button"
+                        onClick={() => deleteSet(exerciseIndex, setIndex)}
+                        aria-label={`Delete set ${setIndex + 1}`}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button className="add-set-button" onClick={() => addSet(exerciseIndex)}>
+                + Add Set
               </button>
-              <button
-                onClick={() => deleteSet(exIndex, setIndex)}
-                style={{ background: 'none', border: 'none', color: '#8e8e93', cursor: 'pointer' }}
-                aria-label="Delete set"
-              >
-                ✕
-              </button>
-            </div>
+            </article>
           ))}
+        </section>
 
-          <button className="add-set-btn" onClick={() => addSet(exIndex)}>
-            + Add Set
-          </button>
-        </div>
-      ))}
-
-      {showPicker ? (
-        <ExercisePicker onSelect={addExercise} />
-      ) : (
-        <button className="add-set-btn" onClick={() => setShowPicker(true)}>
+        <button className="add-exercise-button" onClick={() => setShowPicker(true)}>
           + Add Exercise
         </button>
-      )}
 
-      {exercises.length > 0 && (
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="finish-btn" onClick={() => { setFinished(true); setEndedAt(new Date()); }}>
-            Finish Workout
-          </button>
-          <button className="danger-btn" onClick={() => setConfirmingDelete(true)}>
-            Delete
-          </button>
-        </div>
-      )}
+        {exercises.length > 0 && (
+          <div className="workout-actions">
+            <button className="finish-workout-button" onClick={openFinishConfirmation}>
+              Finish Workout
+            </button>
 
-      {finished && (
-        <div className="finish-confirmation">
-          <p>Are you sure you want to finish the workout?</p>
-          <input
-            className="input-field"
-            type="text"
-            placeholder="Enter workout name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            <button className="delete-workout-button" onClick={() => setConfirmingDelete(true)}>
+              Delete
+            </button>
+          </div>
+        )}
+
+        <div className="workout-bottom-spacer" aria-hidden="true" />
+
+        {showPicker && (
+          <ExercisePicker
+            onSelect={addExercise}
+            onClose={() => setShowPicker(false)}
           />
-          <button onClick={() => { finishWorkout(); setFinished(false); }}>Finish workout</button>
-          <button onClick={() => setFinished(false)}>No</button>
-        </div>
-      )}
+        )}
 
-      {confirmingDelete && (
-        <div className="finish-confirmation">
-          <p>Delete this entire workout? This can't be undone.</p>
-          <button onClick={deleteWorkout}>Yes, delete</button>
-          <button onClick={() => setConfirmingDelete(false)}>Cancel</button>
-        </div>
-      )}
+        {finished && (
+          <div className="confirmation-overlay" role="presentation">
+            <div className="confirmation-dialog" role="dialog" aria-modal="true">
+              <p className="confirmation-dialog__text">Are you sure you want to finish the workout?</p>
 
-      <WorkoutSummary summary={summary} onClose={() => setSummary(null)} />
+              <input
+                className="confirmation-dialog__input"
+                type="text"
+                placeholder="Enter workout name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
 
-      <Link to="/settings" style={{ color: '#0a84ff', display: 'block', marginTop: '20px' }}>
-        Go to Settings
-      </Link>
-    </div>
+              <div className="confirmation-dialog__actions">
+                <button
+                  className="confirmation-dialog__button confirmation-dialog__button--primary"
+                  onClick={() => {
+                    finishWorkout();
+                    setFinished(false);
+                  }}
+                >
+                  Finish workout
+                </button>
+
+                <button
+                  className="confirmation-dialog__button"
+                  onClick={() => setFinished(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {confirmingDelete && (
+          <div className="confirmation-overlay" role="presentation">
+            <div className="confirmation-dialog" role="dialog" aria-modal="true">
+              <p className="confirmation-dialog__text">Delete this entire workout? This cannot be undone.</p>
+
+              <div className="confirmation-dialog__actions">
+                <button
+                  className="confirmation-dialog__button confirmation-dialog__button--danger"
+                  onClick={deleteWorkout}
+                >
+                  Yes, delete
+                </button>
+
+                <button
+                  className="confirmation-dialog__button"
+                  onClick={() => setConfirmingDelete(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <WorkoutSummary summary={summary} onClose={() => setSummary(null)} />
+
+      </div>
+    </main>
   );
 }

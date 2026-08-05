@@ -12,13 +12,15 @@ export default function ProfileSearchBar() {
   return (
     <div className="search-container">
       <input
-        placeholder="Search users..."
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value);
-          search(e.target.value);
-        }}
-      />
+  className="profile-search-input"
+  type="search"
+  placeholder="Search users..."
+  value={query}
+  onChange={(e) => {
+    setQuery(e.target.value);
+    search(e.target.value);
+  }}
+/>
       {results.length > 0 && (
         <div className="search-results">
           {results.map((p) => (
