@@ -14,19 +14,19 @@ export const MUSCLE_GROUPS = [
     {
         key: 'arms',
         label: 'Arms',
-        icon: publicAsset('resources/sponge.gif'),
+        icon: publicAsset('assets/sponge.gif'),
         muscles: ['triceps', 'biceps', 'forearms'],
     },
   {
     key: 'back',
     label: 'Back',
-    icon: publicAsset('resources/winnie.gif'),
+    icon: publicAsset('assets/winnie.gif'),
     muscles: ['lats', 'middle back', 'traps'],
   },
   {
     key: 'legs',
     label: 'Legs',
-    icon: publicAsset('resources/winnie.gif'),
+    icon: publicAsset('assets/winnie.gif'),
     muscles: ['quadriceps','hamstrings', 'glutes', 'abductors', 'adductors', 'calves'],
   },
 ];
