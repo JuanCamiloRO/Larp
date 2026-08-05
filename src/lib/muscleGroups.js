@@ -7,24 +7,26 @@
 // NOTE: quadriceps is intentionally left OUT of 'legs' -- confirm if it
 // should be included; add 'quadriceps' to the muscles array below if so.
 
+import { publicAsset } from './publicAsset';
+
 export const MUSCLE_GROUPS = [
 
     {
         key: 'arms',
         label: 'Arms',
-        icon: '/resources/sponge.gif',
+        icon: publicAsset('resources/sponge.gif'),
         muscles: ['triceps', 'biceps', 'forearms'],
     },
   {
     key: 'back',
     label: 'Back',
-    icon: '/resources/winnie.gif',
+    icon: publicAsset('resources/winnie.gif'),
     muscles: ['lats', 'middle back', 'traps'],
   },
   {
     key: 'legs',
     label: 'Legs',
-    icon: '/resources/winnie.gif',
+    icon: publicAsset('resources/winnie.gif'),
     muscles: ['quadriceps','hamstrings', 'glutes', 'abductors', 'adductors', 'calves'],
   },
 ];

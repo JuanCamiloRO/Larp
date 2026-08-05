@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { Trash } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useWorkoutContext } from '../context/WorkoutContext';
 import ExercisePicker from '../components/ExercisePicker';
@@ -520,15 +521,17 @@ export default function Workout() {
                   <span className="workout-card__exercise-name">{exercise.name}</span>
 
                   <ExerciseRankBadge exerciseId={exercise.id} userId={user.id} />
-                </div>
-
-                <button
+                  <button
                   className="icon-button icon-button--delete"
                   onClick={() => removeExercise(exerciseIndex)}
                   aria-label={`Remove ${exercise.name}`}
                 >
-                  🗑
+                  <Trash size={16} />
                 </button>
+                </div>
+             
+                
+                
               </header>
 
               <div className="set-table">

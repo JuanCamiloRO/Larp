@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../supabase';
 import '../css/picker.css';
 
@@ -54,6 +55,19 @@ export default function ExercisePicker({ onSelect, onClose }) {
   }, [query]);
 
   useEffect(() => {
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, []);
+
+  useEffect(() => {
     function handleEscape(event) {
       if (event.key === 'Escape') {
         onClose();
@@ -67,22 +81,12 @@ export default function ExercisePicker({ onSelect, onClose }) {
     };
   }, [onClose]);
 
-  useEffect(() => {
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
+  function resolveImageUrl(image) {
+    if (!image) return null;
 
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousHtmlOverflow;
-    };
-  }, []);
-
-  function resolveImageUrl(img) {
-    if (img.startsWith('http')) return img;
-    return `${IMAGE_BASE_URL}${img}`;
+    return image.startsWith('http')
+      ? image
+      : `${IMAGE_BASE_URL}${image}`;
   }
 
   async function handleSelect(exercise) {
@@ -92,13 +96,17 @@ export default function ExercisePicker({ onSelect, onClose }) {
 
     try {
       await onSelect(exercise);
+      setSelectingId(null);
     } catch (error) {
       console.error('Failed to select exercise:', error);
       setSelectingId(null);
     }
   }
 
-  return (
+  const hasQuery = Boolean(query.trim());
+  const hasNoResults = !loading && hasQuery && results.length === 0;
+
+  return createPortal(
     <div
       className="exercise-picker-overlay"
       role="presentation"
@@ -111,13 +119,13 @@ export default function ExercisePicker({ onSelect, onClose }) {
         aria-label="Select exercise"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="exercise-picker-modal__handle" />
+        <div />
 
-        <div className="exercise-picker-header">
+        <header className="exercise-picker-header">
           <h2
             style={{
               margin: 0,
-              color: 'white',
+              color: '#fff',
               fontSize: '20px',
             }}
           >
@@ -125,6 +133,7 @@ export default function ExercisePicker({ onSelect, onClose }) {
           </h2>
 
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close exercise picker"
             style={{
@@ -132,18 +141,20 @@ export default function ExercisePicker({ onSelect, onClose }) {
               background: 'none',
               color: '#0a84ff',
               fontSize: '16px',
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: 'pointer',
             }}
           >
             Cancel
           </button>
-        </div>
+        </header>
 
         <div className="exercise-picker-search">
           <input
-            autoFocus
             className="edit-field"
+            type="search"
+            inputMode="search"
+            enterKeyHint="search"
             placeholder="Search exercises..."
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -156,123 +167,132 @@ export default function ExercisePicker({ onSelect, onClose }) {
         </div>
 
         <div className="exercise-picker-results">
-          {!query.trim() && (
+          {!hasQuery && (
             <p
               style={{
+                marginTop: '32px',
                 color: '#8e8e93',
                 textAlign: 'center',
-                marginTop: '32px',
               }}
             >
-              Exercises will appear here.
+              Search for an exercise to add it.
             </p>
           )}
 
           {loading && (
             <p
               style={{
+                marginTop: '32px',
                 color: '#8e8e93',
                 textAlign: 'center',
-                marginTop: '32px',
               }}
             >
               Searching...
             </p>
           )}
 
-          {!loading && query.trim() && results.length === 0 && (
+          {hasNoResults && (
             <p
               style={{
+                marginTop: '32px',
                 color: '#8e8e93',
                 textAlign: 'center',
-                marginTop: '32px',
               }}
             >
               No exercises found.
             </p>
           )}
 
-          {results.map((exercise) => {
-            const isSelecting = selectingId === exercise.id;
+          {!loading &&
+            results.map((exercise) => {
+              const isSelecting = selectingId === exercise.id;
+              const imageUrl = resolveImageUrl(exercise.images?.[0]);
 
-            return (
-              <button
-                key={exercise.id}
-                onClick={() => handleSelect(exercise)}
-                disabled={Boolean(selectingId)}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '12px 4px',
-                  border: 'none',
-                  borderBottom: '1px solid #2c2c2e',
-                  background: 'transparent',
-                  color: 'white',
-                  textAlign: 'left',
-                  cursor: selectingId ? 'default' : 'pointer',
-                  opacity: selectingId && !isSelecting ? 0.5 : 1,
-                }}
-              >
-                {exercise.images?.[0] ? (
-                  <img
-                    src={resolveImageUrl(exercise.images[0])}
-                    alt=""
+              return (
+                <button
+                  key={exercise.id}
+                  type="button"
+                  onClick={() => handleSelect(exercise)}
+                  disabled={Boolean(selectingId)}
+                  style={{
+                    display: 'flex',
+                    width: '100%',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 4px',
+                    border: 'none',
+                    borderBottom: '1px solid #2c2c2e',
+                    background: 'transparent',
+                    color: '#fff',
+                    textAlign: 'left',
+                    cursor: selectingId ? 'default' : 'pointer',
+                    opacity: selectingId && !isSelecting ? 0.5 : 1,
+                  }}
+                >
+                  {imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt=""
+                      style={{
+                        width: '52px',
+                        height: '52px',
+                        flexShrink: 0,
+                        borderRadius: '50%',
+                        background: '#2c2c2e',
+                        objectFit: 'cover',
+                      }}
+                      onError={(event) => {
+                        event.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        display: 'grid',
+                        width: '52px',
+                        height: '52px',
+                        flexShrink: 0,
+                        placeItems: 'center',
+                        borderRadius: '50%',
+                        background: '#2c2c2e',
+                        color: '#8e8e93',
+                        fontSize: '22px',
+                      }}
+                    >
+                      💪
+                    </div>
+                  )}
+
+                  <span
                     style={{
-                      width: '52px',
-                      height: '52px',
-                      flexShrink: 0,
-                      objectFit: 'cover',
-                      borderRadius: '50%',
-                      background: '#2c2c2e',
-                    }}
-                    onError={(event) => {
-                      event.currentTarget.style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: '52px',
-                      height: '52px',
-                      display: 'grid',
-                      flexShrink: 0,
-                      placeItems: 'center',
-                      borderRadius: '10px',
-                      background: '#2c2c2e',
-                      color: '#8e8e93',
-                      fontSize: '22px',
+                      minWidth: 0,
+                      flex: 1,
+                      overflow: 'hidden',
+                      fontSize: '16px',
+                      fontWeight: 600,
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    💪
-                  </div>
-                )}
+                    {exercise.name}
+                  </span>
 
-                <span
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    fontSize: '16px',
-                    fontWeight: 600,
-                  }}
-                >
-                  {exercise.name}
-                </span>
-
-                <span
-                  style={{
-                    color: '#8e8e93',
-                    fontSize: '20px',
-                  }}
-                >
-                  {isSelecting ? '…' : '›'}
-                </span>
-              </button>
-            );
-          })}
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      color: '#8e8e93',
+                      fontSize: '20px',
+                    }}
+                  >
+                    {isSelecting ? '…' : '›'}
+                  </span>
+                </button>
+              );
+            })}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
