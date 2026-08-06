@@ -1,85 +1,168 @@
 .exercise-picker-overlay {
   position: fixed;
-  z-index: 1000;
+  z-index: 1300;
   inset: 0;
-  display: flex;
-  align-items: flex-end;
-  overflow: hidden;
-  overscroll-behavior: none;
-  background: rgba(0, 0, 0, 0.72);
-  touch-action: none;
-  animation: exercise-picker-backdrop-in 180ms ease-out both;
+  display: grid;
+  place-items: end center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.68);
+  animation: picker-overlay-in 180ms ease-out both;
 }
 
 .exercise-picker-modal {
-  width: 100%;
-  height: min(72svh, 480px);
-  max-height: calc(100svh - env(safe-area-inset-top) - 12px);
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  width: min(100%, 620px);
+  height: min(74dvh, 620px);
   overflow: hidden;
-  border-radius: 20px 20px 0 0;
+  border: 1px solid #3a3a3c;
+  border-radius: 20px;
   background: #1c1c1e;
-  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.45);
-  touch-action: pan-y;
-  animation: exercise-picker-sheet-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.55);
+  animation: picker-modal-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .exercise-picker-header {
   display: flex;
-  flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 16px;
-  border-bottom: 1px solid #38383a;
+  border-bottom: 1px solid #2c2c2e;
+}
+
+.exercise-picker-header h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 19px;
+}
+
+.exercise-picker-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  padding: 6px 0;
+  background: transparent;
+  color: #ff3b30;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
 }
 
 .exercise-picker-search {
-  flex: 0 0 auto;
-  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 14px 16px;
+  padding: 0 12px;
+  border: 1px solid #3a3a3c;
+  border-radius: 12px;
+  background: #242426;
+  color: #8e8e93;
+}
+
+.exercise-picker-search:focus-within {
+  border-color: #ff3b30;
+  box-shadow: 0 0 0 2px rgba(255, 59, 48, 0.16);
+}
+
+.exercise-picker-search input {
+  width: 100%;
+  height: 44px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+}
+
+.exercise-picker-search input::placeholder {
+  color: #8e8e93;
 }
 
 .exercise-picker-results {
   min-height: 0;
-  flex: 1 1 auto;
   overflow-y: auto;
-  padding: 0 16px max(24px, env(safe-area-inset-bottom));
   overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  padding: 0 16px calc(18px + env(safe-area-inset-bottom, 0px));
+  scrollbar-width: thin;
+  scrollbar-color: #48484a transparent;
 }
 
-.exercise-picker-modal__handle {
-  width: 38px;
-  height: 4px;
+.exercise-picker-message {
+  margin: 36px 0;
+  color: #8e8e93;
+  text-align: center;
+  font-size: 14px;
+}
+
+.exercise-picker-result {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 4px;
+  border: 0;
+  border-bottom: 1px solid #2c2c2e;
+  background: transparent;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.exercise-picker-result:active {
+  background: rgba(255, 59, 48, 0.1);
+}
+
+.exercise-picker-result:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.exercise-picker-result img,
+.exercise-picker-result__fallback {
+  display: grid;
+  width: 52px;
+  height: 52px;
   flex: 0 0 auto;
-  margin: 8px auto 2px;
-  border-radius: 999px;
-  background: #636366;
+  place-items: center;
+  border-radius: 50%;
+  background: #2c2c2e;
+  object-fit: cover;
 }
 
-@keyframes exercise-picker-backdrop-in {
-  from {
-    background: rgba(0, 0, 0, 0);
-  }
-
-  to {
-    background: rgba(0, 0, 0, 0.72);
-  }
+.exercise-picker-result__fallback {
+  color: #8e8e93;
+  font-size: 22px;
 }
 
-@keyframes exercise-picker-sheet-in {
-  from {
-    transform: translateY(100%);
-  }
-
-  to {
-    transform: translateY(0);
-  }
+.exercise-picker-result__name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .exercise-picker-overlay,
-  .exercise-picker-modal {
-    animation: none;
-  }
+.exercise-picker-result__arrow {
+  color: #ff3b30;
+  font-size: 22px;
+}
+
+@keyframes picker-overlay-in {
+  from { background: rgba(0, 0, 0, 0); }
+  to { background: rgba(0, 0, 0, 0.68); }
+}
+
+@keyframes picker-modal-in {
+  from { opacity: 0; transform: translateY(28px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (min-width: 640px) {
+  .exercise-picker-overlay { place-items: center; }
 }

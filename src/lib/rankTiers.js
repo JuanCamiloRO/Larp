@@ -6,13 +6,13 @@
 import { publicAsset } from './publicAsset';
 
 export const TIERS = {
-  'Scroller': { label: 'Scroller', icon: publicAsset('assets/bronze.png') },
-  'Crossfitter': { label: 'Crossfitter', icon: publicAsset('assets/platinum.png') },
-  'Calisthenic': { label: 'Calisthenic', icon: publicAsset('assets/diamond.png') },
-  'Gymbro': { label: 'Gymbro', icon: publicAsset('assets/gymbro.png') },
-  'Peptide': { label: 'Peptide', icon: publicAsset('assets/peptide.png') },
-  'Larper': { label: 'Larper', icon: publicAsset('assets/champion.png') },
-  'Fake Natty': { label: 'Fake Natty', icon: publicAsset('assets/unreal.png') },
+  'Scroller': { label: 'Scroller', icon: publicAsset('resources/bronze.png') },
+  'Crossfitter': { label: 'Crossfitter', icon: publicAsset('resources/platinum.png') },
+  'Calisthenic': { label: 'Calisthenic', icon: publicAsset('resources/diamond.png') },
+  'Gymbro': { label: 'Gymbro', icon: publicAsset('resources/gymbro.png') },
+  'Peptide': { label: 'Peptide', icon: publicAsset('resources/peptide.png') },
+  'Larper': { label: 'Larper', icon: publicAsset('resources/champion.png') },
+  'Fake Natty': { label: 'Fake Natty', icon: publicAsset('resources/unreal.png') },
 };
 
 export const TIER_ORDER = [

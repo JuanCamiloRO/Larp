@@ -39,7 +39,7 @@ export default function MuscleHeatmap({ userId }) {
   const weeklyStats = toWeeklyAverage(muscleTotals, days);
 
   return (
-    <div className="chart-container">
+    <div >
       <div className="chart-buttons">
         {RANGE_OPTIONS.map((opt) => (
           <button

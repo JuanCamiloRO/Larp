@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Discover from './pages/Discover.jsx';
+import ExploreRoutines from './components/ExploreRoutines.jsx';
 import Workout from './pages/Workout.jsx';
 import Leaderboard from './pages/Leaderboard.jsx';
 import Login from './pages/Login.jsx';
@@ -10,6 +11,8 @@ import Profile from './pages/Profile.jsx';
 import PublicProfile from './pages/PublicProfile.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import MuscleRanks from './pages/MuscleRanks.jsx';
+import RanksComingSoon from './pages/RanksComingSoon.jsx';
+import RoutineEditor from './components/RoutineEditor.jsx';
 import Settings from './pages/Settings.jsx';
 import SignUp from './pages/SignUp.jsx';
 import Navbar from './components/Navbar.jsx';
@@ -25,13 +28,16 @@ export default function App() {
       <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/discover" element={<ProtectedRoute><Discover /></ProtectedRoute>} />
+      <Route path="/routines" element={<ProtectedRoute><ExploreRoutines /></ProtectedRoute>} />
       <Route path="/workout" element={<ProtectedRoute><Workout /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/profile/:userId" element={<PublicProfile />} />
       <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
       <Route path="/login" element={<Login />} />
       <Route path="/nutrition" element={<ProtectedRoute><Nutrition /></ProtectedRoute>} />
-      <Route path="/ranks" element={<ProtectedRoute><MuscleRanks /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/ranks" element={<ProtectedRoute><RanksComingSoon /></ProtectedRoute>} />
+      <Route path="/routines/new" element={<ProtectedRoute><RoutineEditor /></ProtectedRoute>} />
       <Route path="/signup" element={<SignUp />} /> 
     </Routes>
     
