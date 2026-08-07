@@ -4,7 +4,9 @@ export default async function handler(req, res) {
   }
 
   if (!process.env.GEMINI_API_KEY) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY is not configured' });
+    return res
+      .status(500)
+      .json({ error: 'GEMINI_API_KEY is not configured' });
   }
 
   const { image, mimeType = 'image/jpeg' } = req.body || {};
@@ -31,52 +33,98 @@ export default async function handler(req, res) {
 Estimate edible portions conservatively. Use grams for every item. Use numbers, not strings. Do not include markdown, explanations, or nutritional advice. If uncertain, still provide your best estimate.`;
 
   const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+
+  const endpoint =
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent` +
+    `?key=${process.env.GEMINI_API_KEY}`;
 
   try {
-    const response = await fetch('/api/meal-scan', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    image: base64,
-    mimeType: image.type,
-  }),
-});
+    const base64Image = image.replace(
+      /^data:[^;]+;base64,/,
+      ''
+    );
 
-const rawResponse = await response.text();
+    const geminiResponse = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+              {
+                inline_data: {
+                  mime_type: mimeType,
+                  data: base64Image,
+                },
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          responseMimeType: 'application/json',
+        },
+      }),
+    });
 
-let result;
+    const rawResponse = await geminiResponse.text();
 
-try {
-  result = rawResponse ? JSON.parse(rawResponse) : {};
-} catch (parseError) {
-  console.error('Meal scan returned invalid JSON:', {
-    status: response.status,
-    statusText: response.statusText,
-    body: rawResponse,
-  });
+    let geminiResult;
 
-  throw new Error(
-    `Meal scan server returned invalid response (${response.status})`
-  );
-}
+    try {
+      geminiResult = rawResponse
+        ? JSON.parse(rawResponse)
+        : {};
+    } catch (parseError) {
+      console.error('Gemini returned invalid JSON:', {
+        status: geminiResponse.status,
+        body: rawResponse,
+      });
 
-if (!response.ok) {
-  throw new Error(result.error || 'Meal scan failed');
-}
-
-const { payload } = result;
-
-    const text = payload.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) {
-      return res.status(502).json({ error: 'Gemini returned no meal data' });
+      return res.status(502).json({
+        error: 'Gemini returned an invalid response',
+      });
     }
 
-    const result = JSON.parse(text);
-    const items = Array.isArray(result.items) ? result.items : [];
+    if (!geminiResponse.ok) {
+      console.error('Gemini API error:', geminiResult);
+
+      return res.status(geminiResponse.status).json({
+        error:
+          geminiResult?.error?.message ||
+          'Gemini meal analysis failed',
+      });
+    }
+
+    const text =
+      geminiResult.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!text) {
+      return res.status(502).json({
+        error: 'Gemini returned no meal data',
+      });
+    }
+
+    let mealResult;
+
+    try {
+      mealResult = JSON.parse(text);
+    } catch (parseError) {
+      console.error('Gemini meal text was not valid JSON:', text);
+
+      return res.status(502).json({
+        error: 'Gemini returned invalid meal JSON',
+      });
+    }
+
+    const items = Array.isArray(mealResult.items)
+      ? mealResult.items
+      : [];
 
     return res.status(200).json({
-      mealName: result.mealName || 'Scanned meal',
+      mealName: mealResult.mealName || 'Scanned meal',
       items: items.map((item) => ({
         name: String(item.name || 'Unknown food'),
         grams: Number(item.grams) || 0,
@@ -88,6 +136,9 @@ const { payload } = result;
     });
   } catch (error) {
     console.error('Meal scan server error:', error);
-    return res.status(500).json({ error: 'Could not analyze meal image' });
+
+    return res.status(500).json({
+      error: 'Could not analyze meal image',
+    });
   }
 }
