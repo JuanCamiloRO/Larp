@@ -16,6 +16,23 @@ const RANGE_OPTIONS = [
   { label: '90D', days: 90 },
 ];
 
+const HEATMAP_COLORS = [
+  '#321416',
+  '#64201d',
+  '#982b25',
+  '#d9362d',
+  '#ff3b30',
+];
+
+const MODEL_STYLE = {
+  width: '10rem',
+  height: 'auto',
+  filter: `
+    drop-shadow(0 18px 18px rgba(0, 0, 0, .55))
+    drop-shadow(0 0 18px rgba(255, 59, 48, .12))
+  `,
+};
+
 export default function MuscleHeatmap({ userId }) {
   const [days, setDays] = useState(7);
   const { data, muscleTotals, loading, error } = useMuscleHeatmap(days, userId);
@@ -60,19 +77,20 @@ export default function MuscleHeatmap({ userId }) {
         <>
           <div style={{ display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', marginTop: '14px' }}>
             <Model
-              data={data}
-              type="anterior"
-              style={{ width: '9rem' }}
-              bodyColor="#2c2c2e"
-              highlightedColors={['#5a2420', '#ff3b30', '#ff6b61', '#ff9990', '#ffc2ba']}
-            />
-            <Model
-              data={data}
-              type="posterior"
-              style={{ width: '9rem' }}
-              bodyColor="#2c2c2e"
-              highlightedColors={['#5a2420', '#ff3b30', '#ff6b61', '#ff9990', '#ffc2ba']}
-            />
+  data={data}
+  type="anterior"
+  style={MODEL_STYLE}
+  bodyColor="#252529"
+  highlightedColors={HEATMAP_COLORS}
+/>
+
+<Model
+  data={data}
+  type="posterior"
+  style={MODEL_STYLE}
+  bodyColor="#252529"
+  highlightedColors={HEATMAP_COLORS}
+/>
           </div>
 
           <div className="muscle-map-legend">

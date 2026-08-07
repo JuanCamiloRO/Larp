@@ -36,7 +36,8 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/nutrition" element={<ProtectedRoute><Nutrition /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-      <Route path="/ranks" element={<ProtectedRoute><RanksComingSoon /></ProtectedRoute>} />
+      <Route path="/ranks" element={<ProtectedRoute><MuscleRanks /></ProtectedRoute>} />
+      <Route path="/muscle-ranks" element={<ProtectedRoute><RanksComingSoon /></ProtectedRoute>} />
       <Route path="/routines/new" element={<ProtectedRoute><RoutineEditor /></ProtectedRoute>} />
       <Route path="/signup" element={<SignUp />} /> 
     </Routes>

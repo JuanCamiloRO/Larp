@@ -1,30 +1,56 @@
 // hooks/useMuscleRanks.js
-// After computing individual muscle ranks (unchanged logic), folds
-// grouped muscles (see lib/muscleGroups.js) into combined rows: e.g.
-// lats + middle back + traps -> one "Back" row. Group avg_rank_index is
-// a simple average across the group's muscles (not re-weighted by sets
-// across the whole group) -- see caveat in conversation if this needs
-// to become set-weighted later. Ungrouped muscles pass through unchanged.
+// Reads saved ranks and calculates display progress.
+//
+// best_score is the historical normalized score saved when the best set was
+// performed. It must be used for rank progress so changing profile weight does
+// not recalculate an old performance with today's bodyweight.
+//
+// Call with: useMuscleRanks(userId, currentBodyweightKg)
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../supabase';
-import { TIER_ORDER, TIERS } from '../lib/rankTiers';
+import { TIER_ORDER } from '../lib/rankTiers';
 import { MUSCLE_GROUPS, MUSCLE_TO_GROUP } from '../lib/muscleGroups';
 
-function indexToRank(i) {
-  return TIER_ORDER[Math.max(0, Math.min(TIER_ORDER.length - 1, Math.round(i)))];
+const BODYWEIGHT_E1RM_EXPONENT = 0.67;
+
+function indexToRank(index) {
+  return TIER_ORDER[
+    Math.max(0, Math.min(TIER_ORDER.length - 1, Math.round(index)))
+  ];
 }
 
-export function useMuscleRanks(userId) {
+function scoreToE1RM(score, bodyweightKg) {
+  const scoreNumber = Number(score);
+  const bodyweightNumber = Number(bodyweightKg);
+
+  if (!Number.isFinite(scoreNumber) || scoreNumber < 0) return null;
+  if (!Number.isFinite(bodyweightNumber) || bodyweightNumber <= 0) return null;
+
+  return scoreNumber * Math.pow(bodyweightNumber, BODYWEIGHT_E1RM_EXPONENT);
+}
+
+function e1RMToScore(e1RM, bodyweightKg) {
+  const e1RMNumber = Number(e1RM);
+  const bodyweightNumber = Number(bodyweightKg);
+
+  if (!Number.isFinite(e1RMNumber)) return null;
+  if (!Number.isFinite(bodyweightNumber) || bodyweightNumber <= 0) return null;
+
+  return e1RMNumber / Math.pow(bodyweightNumber, BODYWEIGHT_E1RM_EXPONENT);
+}
+
+export function useMuscleRanks(userId, currentBodyweightKg = null) {
   const [muscleRanks, setMuscleRanks] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!userId) return;
-    fetchMuscleRanks();
-  }, [userId]);
+  const fetchMuscleRanks = useCallback(async () => {
+    if (!userId) {
+      setMuscleRanks([]);
+      setLoading(false);
+      return;
+    }
 
-  async function fetchMuscleRanks() {
     setLoading(true);
 
     const { data: muscleData, error: muscleError } = await supabase
@@ -34,86 +60,148 @@ export function useMuscleRanks(userId) {
       .order('muscle', { ascending: true });
 
     if (muscleError || !muscleData) {
+      setMuscleRanks([]);
       setLoading(false);
       return;
     }
 
     const { data: exerciseData, error: exerciseError } = await supabase
       .from('exercise_ranks')
-      .select('exercise_id, rank, best_1rm, exercises(name, primary_muscles)')
+      .select('exercise_id, rank, best_1rm, best_score, exercises(name, primary_muscles)')
       .eq('user_id', userId);
 
     if (exerciseError) {
+      console.error('Failed to load exercise ranks:', exerciseError);
+      setMuscleRanks([]);
       setLoading(false);
       return;
     }
 
-    const exerciseIds = (exerciseData || []).map((e) => e.exercise_id);
+    const exerciseIds = (exerciseData || []).map(
+      (exercise) => exercise.exercise_id
+    );
 
-    const { data: thresholdRows, error: thresholdsError } = await supabase
-      .from('exercise_thresholds')
-      .select('exercise_id, rank, min_1rm')
-      .in('exercise_id', exerciseIds);
+    let thresholdRows = [];
 
-    if (thresholdsError) {
-      setLoading(false);
-      return;
+    if (exerciseIds.length > 0) {
+      const { data, error: thresholdsError } = await supabase
+        .from('exercise_thresholds')
+        .select('exercise_id, rank, min_score')
+        .in('exercise_id', exerciseIds);
+
+      if (thresholdsError) {
+        console.error('Failed to load exercise thresholds:', thresholdsError);
+        setMuscleRanks([]);
+        setLoading(false);
+        return;
+      }
+
+      thresholdRows = data || [];
     }
 
     const thresholdsByExercise = {};
-    for (const t of thresholdRows || []) {
-      if (!thresholdsByExercise[t.exercise_id]) thresholdsByExercise[t.exercise_id] = [];
-      thresholdsByExercise[t.exercise_id].push(t);
-    }
-    for (const exId in thresholdsByExercise) {
-      thresholdsByExercise[exId].sort((a, b) => a.min_1rm - b.min_1rm);
-    }
 
-    function buildExerciseEntry(e) {
-      const sortedThresholds = thresholdsByExercise[e.exercise_id] || [];
-      const currentThresholdIndex = sortedThresholds.findIndex((t) => t.rank === e.rank);
-      const currentThreshold = sortedThresholds[currentThresholdIndex] || { min_1rm: 0 };
-      const nextThreshold = sortedThresholds[currentThresholdIndex + 1] || null;
-
-      let exProgress = 100;
-      if (nextThreshold) {
-        exProgress = ((e.best_1rm - currentThreshold.min_1rm) /
-          (nextThreshold.min_1rm - currentThreshold.min_1rm)) * 100;
-        exProgress = Math.max(0, Math.min(100, exProgress));
+    for (const threshold of thresholdRows) {
+      if (!thresholdsByExercise[threshold.exercise_id]) {
+        thresholdsByExercise[threshold.exercise_id] = [];
       }
 
-      const kgToNext = nextThreshold
-        ? Math.max(0, Math.round((nextThreshold.min_1rm - e.best_1rm) * 10) / 10)
+      thresholdsByExercise[threshold.exercise_id].push(threshold);
+    }
+
+    for (const exerciseId of Object.keys(thresholdsByExercise)) {
+      thresholdsByExercise[exerciseId].sort(
+        (a, b) => Number(a.min_score) - Number(b.min_score)
+      );
+    }
+
+    function buildExerciseEntry(exerciseRank) {
+      const sortedThresholds =
+        thresholdsByExercise[exerciseRank.exercise_id] || [];
+
+      const currentThresholdIndex = sortedThresholds.findIndex(
+        (threshold) => threshold.rank === exerciseRank.rank
+      );
+
+      const isUnranked = exerciseRank.rank === 'Unranked';
+      const currentThreshold = isUnranked
+        ? { min_score: 0 }
+        : sortedThresholds[currentThresholdIndex] || { min_score: 0 };
+
+      const nextThreshold = isUnranked
+        ? sortedThresholds[0] || null
+        : sortedThresholds[currentThresholdIndex + 1] || null;
+
+      const best1RM = Number(exerciseRank.best_1rm) || 0;
+      const savedBestScore = Number(exerciseRank.best_score);
+
+      // Fallback supports old rows created before best_score was added. New
+      // rows should always use the persisted historical best_score.
+      const bestScore = Number.isFinite(savedBestScore)
+        ? savedBestScore
+        : e1RMToScore(best1RM, currentBodyweightKg);
+
+      let progress = 0;
+
+      if (nextThreshold && bestScore !== null) {
+        const currentMinScore = Number(currentThreshold.min_score) || 0;
+        const nextMinScore = Number(nextThreshold.min_score);
+        const scoreRange = nextMinScore - currentMinScore;
+
+        progress = scoreRange > 0
+          ? ((bestScore - currentMinScore) / scoreRange) * 100
+          : 0;
+
+        progress = Math.max(0, Math.min(100, progress));
+      } else if (!nextThreshold) {
+        progress = 100;
+      }
+
+      // This is a readable target expressed as e1RM at the user's current
+      // bodyweight. It does not alter the historical saved best_score.
+      const nextTargetE1RM = nextThreshold
+        ? scoreToE1RM(nextThreshold.min_score, currentBodyweightKg)
+        : null;
+
+      const e1RMToNext = nextTargetE1RM !== null
+        ? Math.max(0, Math.round((nextTargetE1RM - best1RM) * 10) / 10)
         : null;
 
       return {
-        exerciseId: e.exercise_id,
-        name: e.exercises.name,
-        rank: e.rank,
+        exerciseId: exerciseRank.exercise_id,
+        name: exerciseRank.exercises?.name || 'Unknown exercise',
+        rank: exerciseRank.rank,
         nextRank: nextThreshold ? nextThreshold.rank : null,
-        nextThresholdWeight: nextThreshold ? nextThreshold.min_1rm : null,
-        kgToNext,
-        best1RM: e.best_1rm,
-        progress: exProgress,
+        best1RM,
+        bestScore,
+        progress,
+        nextTargetE1RM,
+        e1RMToNext,
+        nextThresholdWeight: nextTargetE1RM,
+        kgToNext: e1RMToNext,
       };
     }
 
-    function buildMuscleRow(m) {
-      const currentIndex = TIER_ORDER.indexOf(m.rank);
-      const nextTierKey = TIER_ORDER[currentIndex + 1] || null;
+    function buildMuscleRow(muscleRank) {
+      const currentIndex = TIER_ORDER.indexOf(muscleRank.rank);
+      const safeCurrentIndex = currentIndex >= 0 ? currentIndex : -1;
+      const nextTierKey = TIER_ORDER[safeCurrentIndex + 1] || null;
+      const averageIndex = Number(muscleRank.avg_rank_index) || 0;
       const progress = nextTierKey
-        ? Math.max(0, Math.min(100, (m.avg_rank_index - currentIndex) * 100))
+        ? Math.max(0, Math.min(100, (averageIndex - safeCurrentIndex) * 100))
         : 100;
 
       const exercisesForMuscle = (exerciseData || [])
-        .filter((e) => e.exercises?.primary_muscles?.includes(m.muscle))
+        .filter((exercise) =>
+          exercise.exercises?.primary_muscles?.includes(muscleRank.muscle)
+        )
         .map(buildExerciseEntry)
-        .sort((a, b) => b.best1RM - a.best1RM);
+        .sort((a, b) => b.bestScore - a.bestScore);
 
       return {
-        muscle: m.muscle,
-        avgRankIndex: m.avg_rank_index,
-        currentTierKey: m.rank,
+        muscle: muscleRank.muscle,
+        avgRankIndex: averageIndex,
+        currentTierKey: muscleRank.rank,
         nextTierKey,
         progress,
         exercises: exercisesForMuscle,
@@ -123,59 +211,79 @@ export function useMuscleRanks(userId) {
     const ungrouped = [];
     const groupBuckets = {};
 
-    for (const m of muscleData) {
-      const group = MUSCLE_TO_GROUP[m.muscle];
+    for (const muscleRank of muscleData) {
+      const group = MUSCLE_TO_GROUP[muscleRank.muscle];
+
       if (!group) {
-        ungrouped.push(buildMuscleRow(m));
+        ungrouped.push(buildMuscleRow(muscleRank));
         continue;
       }
+
       if (!groupBuckets[group.key]) groupBuckets[group.key] = [];
-      groupBuckets[group.key].push(m);
+      groupBuckets[group.key].push(muscleRank);
     }
 
     const groupedRows = MUSCLE_GROUPS
-  .filter((group) => groupBuckets[group.key]?.length > 0)
-  .map((group) => {
-    const members = groupBuckets[group.key];
-    const avgIndex = members.reduce((sum, m) => sum + m.avg_rank_index, 0) / members.length;
-    const rank = indexToRank(avgIndex);
-    const currentIndex = TIER_ORDER.indexOf(rank);
-    const nextTierKey = TIER_ORDER[currentIndex + 1] || null;
-    const progress = nextTierKey
-      ? Math.max(0, Math.min(100, (avgIndex - currentIndex) * 100))
-      : 100;
+      .filter((group) => groupBuckets[group.key]?.length > 0)
+      .map((group) => {
+        const members = groupBuckets[group.key];
+        const averageIndex =
+          members.reduce(
+            (sum, member) => sum + Number(member.avg_rank_index || 0),
+            0
+          ) / members.length;
+        const rank = indexToRank(averageIndex);
+        const currentIndex = TIER_ORDER.indexOf(rank);
+        const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0;
+        const nextTierKey = TIER_ORDER[safeCurrentIndex + 1] || null;
+        const progress = nextTierKey
+          ? Math.max(
+              0,
+              Math.min(100, (averageIndex - safeCurrentIndex) * 100)
+            )
+          : 100;
 
-    const exercisesForGroup = (exerciseData || [])
-      .filter((e) =>
-        e.exercises?.primary_muscles?.some((pm) => group.muscles.includes(pm))
-      )
-      .map(buildExerciseEntry)
-      .sort((a, b) => b.best1RM - a.best1RM);
+        const exercisesForGroup = (exerciseData || [])
+          .filter((exercise) =>
+            exercise.exercises?.primary_muscles?.some((primaryMuscle) =>
+              group.muscles.includes(primaryMuscle)
+            )
+          )
+          .map(buildExerciseEntry)
+          .sort((a, b) => b.bestScore - a.bestScore);
 
-    // NEW: per-muscle breakdown within this group, sorted to match the
-    // group's declared muscle order (e.g. Arms -> Triceps, Biceps, Forearms).
-    const subMuscles = group.muscles
-      .map((muscleKey) => members.find((m) => m.muscle === muscleKey))
-      .filter(Boolean)
-      .map(buildMuscleRow);
+        const subMuscles = group.muscles
+          .map((muscleKey) =>
+            members.find((member) => member.muscle === muscleKey)
+          )
+          .filter(Boolean)
+          .map(buildMuscleRow);
 
-    return {
-      muscle: group.key,
-      isGroup: true,
-      groupLabel: group.label,
-      groupIcon: group.icon,
-      avgRankIndex: avgIndex,
-      currentTierKey: rank,
-      nextTierKey,
-      progress,
-      exercises: exercisesForGroup,
-      subMuscles, // NEW
-    };
-  });
+        return {
+          muscle: group.key,
+          isGroup: true,
+          groupLabel: group.label,
+          groupIcon: group.icon,
+          avgRankIndex: averageIndex,
+          currentTierKey: rank,
+          nextTierKey,
+          progress,
+          exercises: exercisesForGroup,
+          subMuscles,
+        };
+      });
 
     setMuscleRanks([...groupedRows, ...ungrouped]);
     setLoading(false);
-  }
+  }, [currentBodyweightKg, userId]);
 
-  return { muscleRanks, loading, refetch: fetchMuscleRanks };
+  useEffect(() => {
+    fetchMuscleRanks();
+  }, [fetchMuscleRanks]);
+
+  return {
+    muscleRanks,
+    loading,
+    refetch: fetchMuscleRanks,
+  };
 }

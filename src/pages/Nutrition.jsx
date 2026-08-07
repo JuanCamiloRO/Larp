@@ -1,10 +1,3 @@
-// pages/Nutrition.jsx
-// Main diary page, MyFitnessPal-style: date navigation at top, calorie ring
-// + macro summary, recently logged foods for quick re-adding, then meal
-// sections (Breakfast/Lunch/Dinner/Snacks) each listing logged foods with
-// a delete option. Tapping "+ Add food" opens search, selecting a result
-// opens LogFoodModal to set serving size before logging.
-
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useFoodLogs, MEAL_TYPES } from '../hooks/useFoodLogs';
@@ -16,6 +9,7 @@ import CalorieRing from '../components/CalorieRing';
 import CalorieGoalEditor from '../components/CalorieGoalEditor';
 import RecentFoods from '../components/RecentFoods';
 import ScanBarcodeButton from '../components/ScanBarcodeButton';
+import WeightProgress from '../components/WeightProgress';
 
 const MEAL_LABELS = {
   breakfast: 'Breakfast',
@@ -79,7 +73,7 @@ export default function Nutrition() {
         <button className="date-nav-btn" onClick={() => changeDay(1)}>›</button>
       </div>
 
-      <div className="daily-totals-card">
+      <div className="weight-progress">
         <CalorieRing consumed={totals.calories} goal={goal} />
         <div className="daily-totals-macros" style={{ marginTop: '12px' }}>
           <span className="subtle">Protein: {Math.round(totals.protein)}g</span>
@@ -139,6 +133,8 @@ export default function Nutrition() {
           onCancel={() => setPendingFood(null)}
         />
       )}
+
+      <WeightProgress userId={user?.id}  />
 
       <p className="subtle" style={{ marginTop: '24px', fontSize: '11px' }}>
         Nutrition data from Open Food Facts, available under the Open Database License.
