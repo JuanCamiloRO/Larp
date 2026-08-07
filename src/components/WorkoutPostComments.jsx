@@ -253,6 +253,7 @@ export default function WorkoutPostComments({
           >
             <Send size={17} />
           </button>
+          <div style = {{height: 'calc(104px + env(safe-area-inset-bottom, 0px))'}}></div>
         </form>
       </section>
     </div>

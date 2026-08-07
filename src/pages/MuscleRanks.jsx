@@ -144,7 +144,7 @@ function ExerciseList({ exercises = [] }) {
             />
           ) : (
             <span className="rank-tier-icon-maxed-sm" aria-label="Maximum tier">
-              👑
+              <img style={{width: '20px', height: '20px'}} src="https://i0.wp.com/static.wikia.nocookie.net/fortnite/images/7/77/Champion_League_-_Icon_-_Fortnite.png/revision/latest?cb=20210307175926" alt="max tier"></img>
             </span>
           )}
         </div>
