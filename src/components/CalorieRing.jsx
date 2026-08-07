@@ -17,6 +17,8 @@ export default function CalorieRing({ consumed, goal }) {
 
   const ringColor = isOver ? '#f87171' : 'var(--accent)';
 
+  
+
   return (
     <div>
       <div className="calorie-ring-wrapper">

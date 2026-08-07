@@ -3,6 +3,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useFoodLogs, MEAL_TYPES } from '../hooks/useFoodLogs';
 import { useCalorieGoal } from '../hooks/useCalorieGoal';
 import { useRecentFoods } from '../hooks/useRecentFoods';
+import { Camera } from 'lucide-react';
+import MealScan from '../components/MealScan';
 import FoodSearch from '../components/FoodSearch';
 import LogFoodModal from '../components/LogFoodModal';
 import CalorieRing from '../components/CalorieRing';
@@ -45,6 +47,7 @@ export default function Nutrition() {
   searchOpenForMeal
 );
   const [pendingFood, setPendingFood] = useState(null);
+  const [mealScanOpen, setMealScanOpen] = useState(false);
 
   function changeDay(offset) {
     const next = new Date(currentDate);
@@ -82,6 +85,23 @@ export default function Nutrition() {
         </div>
         <CalorieGoalEditor goal={goal} onUpdateGoal={updateGoal} />
       </div>
+
+      <button
+  type="button"
+  className="meal-scan-open-btn"
+  onClick={() => setMealScanOpen(true)}
+>
+  <Camera size={17} />
+  Scan a meal
+</button>
+
+{mealScanOpen && (
+  <MealScan
+    defaultMeal={searchOpenForMeal || 'lunch'}
+    onConfirm={handleConfirmLog}
+    onClose={() => setMealScanOpen(false)}
+  />
+)}
 
 
       {loading && <p className="subtle" style={{ marginTop: '16px' }}>Loading diary...</p>}

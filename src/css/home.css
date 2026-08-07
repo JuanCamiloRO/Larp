@@ -367,3 +367,370 @@ a.workout-card__username:hover {
   font-weight: 600;
   letter-spacing: 0;
 }
+
+.workout-comments-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  background: rgba(0, 0, 0, .68);
+  backdrop-filter: blur(7px);
+  animation: comments-backdrop-in .2s ease both;
+}
+
+.workout-comments-sheet {
+  width: min(100%, 620px);
+  max-height: min(78dvh, 680px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #3a3a3c;
+  border-bottom: 0;
+  border-radius: 22px 22px 0 0;
+  background: #18181b;
+  color: #fff;
+  box-shadow: 0 -18px 55px rgba(0, 0, 0, .45);
+  animation: comments-sheet-in .28s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.workout-comments-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 17px 14px;
+  border-bottom: 1px solid #2c2c2e;
+}
+
+.workout-comments-eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: #ff6961;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.workout-comments-header h2 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -.04em;
+}
+
+.workout-comments-close,
+.workout-comment-delete {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #8e8e93;
+  cursor: pointer;
+}
+
+.workout-comments-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #242427;
+}
+
+.workout-comments-list {
+  min-height: 130px;
+  overflow-y: auto;
+  padding: 8px 17px 18px;
+}
+
+.workout-comment {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, .06);
+}
+
+.workout-comment-avatar {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: rgba(255, 59, 48, .16);
+  color: #ff8a83;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.workout-comment-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.workout-comment-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.workout-comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.workout-comment-meta strong {
+  font-size: 12px;
+}
+
+.workout-comment-meta time {
+  color: #636366;
+  font-size: 10px;
+}
+
+.workout-comment-content p {
+  margin: 5px 0 0;
+  color: #d1d1d6;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.workout-comment-delete {
+  padding: 5px;
+}
+
+.workout-comments-error {
+  margin: 0;
+  padding: 0 17px 10px;
+  color: #ff6961;
+  font-size: 12px;
+}
+
+.workout-comments-form {
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px max(12px, env(safe-area-inset-bottom));
+  border-top: 1px solid #2c2c2e;
+  background: #111113;
+}
+
+.workout-comments-form input {
+  min-width: 0;
+  flex: 1;
+  height: 42px;
+  box-sizing: border-box;
+  padding: 0 13px;
+  border: 1px solid #3a3a3c;
+  border-radius: 12px;
+  outline: none;
+  background: #1c1c1e;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+}
+
+.workout-comments-form input:focus {
+  border-color: #ff3b30;
+  box-shadow: 0 0 0 3px rgba(255, 59, 48, .12);
+}
+
+.workout-comments-form button {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border: 0;
+  border-radius: 12px;
+  background: #ff3b30;
+  color: #fff;
+  cursor: pointer;
+}
+
+.workout-comments-form button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+@keyframes comments-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes comments-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 640px) {
+  .workout-comments-backdrop {
+    align-items: center;
+    padding: 20px;
+  }
+
+  .workout-comments-sheet {
+    border-bottom: 1px solid #3a3a3c;
+    border-radius: 22px;
+  }
+}
+
+.workout-post-actions {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  padding: 10px 14px 12px;
+  border-top: 1px solid rgba(255, 255, 255, .06);
+}
+
+.workout-post-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 34px;
+  min-height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #8e8e93;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color .2s ease,
+    transform .2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.workout-post-action svg {
+  flex: 0 0 auto;
+  transition:
+    transform .2s ease,
+    fill .2s ease,
+    stroke .2s ease;
+}
+
+.workout-post-action:hover {
+  color: #fff;
+}
+
+.workout-post-action:hover svg {
+  transform: scale(1.1);
+}
+
+.workout-post-action:active {
+  transform: scale(.9);
+}
+
+.workout-post-action.is-liked {
+  color: #ff3b30;
+}
+
+.workout-post-action.is-liked svg {
+  filter: drop-shadow(0 0 6px rgba(255, 59, 48, .45));
+  animation: workout-like-pop .25s ease both;
+}
+
+.workout-post-action:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+@keyframes workout-like-pop {
+  0% {
+    transform: scale(1);
+  }
+
+  45% {
+    transform: scale(1.3);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workout-post-action,
+  .workout-post-action svg {
+    transition: none;
+    animation: none;
+  }
+}
+
+.workout-comments-list--skeleton {
+  display: grid;
+  gap: 0;
+}
+
+.workout-comment--skeleton {
+  display: flex;
+  gap: 10px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, .06);
+}
+
+.skeleton--comment-avatar {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border-radius: 50%;
+}
+
+.workout-comment-skeleton__content {
+  display: grid;
+  flex: 1;
+  gap: 8px;
+}
+
+.skeleton--comment-meta {
+  width: 100px;
+  height: 11px;
+}
+
+.skeleton--comment-line {
+  width: 92%;
+  height: 12px;
+}
+
+.skeleton--comment-line-short {
+  width: 58%;
+  height: 12px;
+}
+
+@keyframes app-skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -20% 0;
+  }
+}
+
+@media (max-width: 430px) {
+  .calorie-ring-skeleton__body {
+    gap: 18px;
+  }
+
+  .skeleton--calorie-ring {
+    width: 112px;
+    height: 112px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}

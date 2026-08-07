@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import WorkoutPostActions from './WorkoutPostActions';
+import WorkoutPostComments from './WorkoutPostComments';
 import '../css/home.css';
 
 const IMAGE_BASE_URL =
@@ -102,6 +104,7 @@ export default function ExerciseDisplay({
   exercisePreviewCount = 3,
 }) {
   const [expandedWorkouts, setExpandedWorkouts] = useState({});
+  const [commentPost, setCommentPost] = useState(null);
 
   const hasWorkouts = workouts?.length > 0;
   const isInitialLoading = loading && !hasWorkouts;
@@ -294,9 +297,27 @@ export default function ExerciseDisplay({
                 )}
               </button>
             )}
+            <WorkoutPostActions
+  postId={workout.post_id}
+  initialLikeCount={workout.like_count}
+  initiallyLiked={workout.liked_by_user}
+  commentCount={workout.comment_count}
+  onComment={() => setCommentPost(workout)}
+/>
+
+{commentPost && (
+  <WorkoutPostComments
+    postId={commentPost.post_id}
+    onClose={() => setCommentPost(null)}
+    onCountChange={(nextCount) => {
+      commentPost.comment_count = nextCount;
+    }}
+  />
+)}
           </article>
         );
       })}
+      <div style={{ height: '100px' }}></div>
     </div>
   );
 }

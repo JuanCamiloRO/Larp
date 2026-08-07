@@ -27,3 +27,5 @@ pnpm-debug.log*
 # misc
 *.log
 .cache/
+.vercel
+.env*
