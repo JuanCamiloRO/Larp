@@ -6,7 +6,7 @@
 // manage any open/closed state itself.
 
 import { useState } from 'react';
-import { ScanLine } from 'lucide-react';
+import { QrCode } from 'lucide-react';
 import BarcodeScanner from './BarcodeScanner';
 
 export default function ScanBarcodeButton({ onFoodFound }) {
@@ -28,7 +28,7 @@ export default function ScanBarcodeButton({ onFoodFound }) {
         className="btn-secondary scan-barcode-btn"
         onClick={() => setIsScannerOpen(true)}
       >
-        <ScanLine size={16} strokeWidth={2.5} />
+        <QrCode size={24} strokeWidth={2.5} />
         <span>Scan Barcode</span>
       </button>
 

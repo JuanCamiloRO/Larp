@@ -281,3 +281,84 @@
   cursor: not-allowed;
   opacity: .55;
 }
+
+.meal-scan-item--editable {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.meal-scan-item-input--name {
+  flex: 1;
+  min-width: 90px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: inherit;
+  font-size: 13px;
+}
+
+.meal-scan-item--editable {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid #262629;
+}
+
+.meal-scan-item--editable:last-child {
+  border-bottom: none;
+}
+
+.meal-scan-item--editable .meal-scan-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+}
+
+.meal-scan-item-header strong {
+  flex: 1;
+  text-align: left;
+}
+
+.meal-scan-item--editable .meal-scan-item-macros {
+  display: flex;
+  gap: 8px;
+}
+
+.meal-scan-item-macros label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.meal-scan-item-macros input {
+  width: 48px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 4px;
+  color: inherit;
+  font-size: 12px;
+  text-align: center;
+}
+
+.meal-scan-item-remove {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+}
+
+.meal-scan-item-remove:hover {
+  color: #ff6b6b;
+}

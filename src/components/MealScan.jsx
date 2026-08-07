@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
-import { supabase } from '../supabase';
 import '../css/meal-scan.css';
+import { supabase } from '../supabase';
+import { ScanLine } from 'lucide-react';
 
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -18,8 +19,25 @@ function fileToBase64(file) {
   });
 }
 
+function handleItemChange(index, field, value) {
+    setMeal((current) => ({
+      ...current,
+      items: current.items.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item
+      ),
+    }));
+  }
+
+  function handleRemoveItem(index) {
+    setMeal((current) => ({
+      ...current,
+      items: current.items.filter((_, itemIndex) => itemIndex !== index),
+    }));
+  }
+
 export default function MealScan({
-  onMealScanned,
+  defaultMeal = '',
+  onConfirm,
   onClose,
 }) {
   const inputRef = useRef(null);
@@ -29,7 +47,7 @@ export default function MealScan({
   const [selectedFile, setSelectedFile] =
     useState(null);
   const [meal, setMeal] = useState(null);
-  const [mealType, setMealType] = useState('');
+  const [mealType, setMealType] = useState(defaultMeal);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -106,77 +124,21 @@ export default function MealScan({
   }
 
   async function handleAddToDiary() {
-    if (!meal || !Array.isArray(meal.items)) {
+     if (!meal || !Array.isArray(meal.items) || meal.items.length === 0) {
       setError('There are no meal items to save.');
       return;
     }
 
-  if (!mealType) {
-    setError('Please choose a meal type.');
-    return;
-  }
+    if (!mealType) {
+      setError('Please choose a meal type.');
+      return;
+    }
 
     setSaving(true);
     setError('');
 
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError) {
-        throw userError;
-      }
-
-      if (!user) {
-        throw new Error(
-          'You must be signed in to save a meal.'
-        );
-      }
-
-      const totals = meal.items.reduce(
-        (total, item) => ({
-          calories:
-            total.calories +
-            Number(item?.calories || 0),
-          protein:
-            total.protein +
-            Number(item?.protein || 0),
-          carbs:
-            total.carbs +
-            Number(item?.carbs || 0),
-          fat:
-            total.fat + Number(item?.fat || 0),
-        }),
-        {
-          calories: 0,
-          protein: 0,
-          carbs: 0,
-          fat: 0,
-        }
-      );
-
-      const { error: insertError } =
-        await supabase
-          .from('food_logs')
-          .insert({
-            user_id: user.id,
-            food_name:
-              meal.mealName || 'Scanned meal',
-            meal_type: mealType,
-            grams: 1,
-            calories: totals.calories,
-            protein: totals.protein,
-            carbs: totals.carbs,
-            fat: totals.fat,
-          });
-
-      if (insertError) {
-        throw insertError;
-      }
-
-      onMealScanned?.(meal);
+      await onConfirm?.(meal, mealType);
       onClose?.();
     } catch (saveError) {
       console.error(
@@ -242,12 +204,7 @@ export default function MealScan({
             />
           ) : (
             <>
-              <span
-                className="meal-scan-camera"
-                aria-hidden="true"
-              >
-                ◉
-              </span>
+              <ScanLine size={32} />
 
               <strong>Scan your meal</strong>
 
@@ -255,6 +212,8 @@ export default function MealScan({
                 Take a photo or choose one from your
                 library.
               </small>
+
+              <small>Meal scan only provides a quick estimation and may not be 100% accurate.</small>
             </>
           )}
         </label>
@@ -319,17 +278,89 @@ export default function MealScan({
             <div className="meal-scan-items">
               {meal.items.map((item, index) => (
                 <div
-                  className="meal-scan-item"
+                  className="meal-scan-item meal-scan-item--editable"
                   key={`${item.name}-${index}`}
                 >
-                  <div>
+                  <div className="meal-scan-item-header">
                     <strong>{item.name}</strong>
-                    <small>{item.grams} g</small>
+
+                    <button
+                      type="button"
+                      className="meal-scan-item-remove"
+                      onClick={() => handleRemoveItem(index)}
+                      disabled={saving}
+                      aria-label={`Remove ${item.name}`}
+                    >
+                      ✕
+                    </button>
                   </div>
 
-                  <span>
-                    {item.calories} kcal
-                  </span>
+                  <div className="meal-scan-item-macros">
+                    <label>
+                      g
+                      <input
+                        type="number"
+                        min="0"
+                        value={item.grams}
+                        onChange={(event) =>
+                          handleItemChange(index, 'grams', Number(event.target.value))
+                        }
+                        disabled={saving}
+                      />
+                    </label>
+
+                    <label>
+                      kcal
+                      <input
+                        type="number"
+                        min="0"
+                        value={item.calories}
+                        onChange={(event) =>
+                          handleItemChange(index, 'calories', Number(event.target.value))
+                        }
+                        disabled={saving}
+                      />
+                    </label>
+
+                    <label>
+                      P
+                      <input
+                        type="number"
+                        min="0"
+                        value={item.protein ?? 0}
+                        onChange={(event) =>
+                          handleItemChange(index, 'protein', Number(event.target.value))
+                        }
+                        disabled={saving}
+                      />
+                    </label>
+
+                    <label>
+                      C
+                      <input
+                        type="number"
+                        min="0"
+                        value={item.carbs ?? 0}
+                        onChange={(event) =>
+                          handleItemChange(index, 'carbs', Number(event.target.value))
+                        }
+                        disabled={saving}
+                      />
+                    </label>
+
+                    <label>
+                      F
+                      <input
+                        type="number"
+                        min="0"
+                        value={item.fat ?? 0}
+                        onChange={(event) =>
+                          handleItemChange(index, 'fat', Number(event.target.value))
+                        }
+                        disabled={saving}
+                      />
+                    </label>
+                  </div>
                 </div>
               ))}
             </div>

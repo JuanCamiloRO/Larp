@@ -114,7 +114,7 @@ export default function Workout() {
     patchExercise(exerciseIndex, (item) => ({ ...item, sets: item.sets.map((current, index) => index === setIndex ? { ...current, done: false, saving: false, dbId: null, isPR: false } : current) }));
   }
 
-  async function finishWorkout() {
+ async function finishWorkout() {
     if (!workoutId) return resetWorkout();
     const { data: workout, error } = await supabase.from('workouts').select('*, workout_sets(*, exercises(id, name))').eq('id', workoutId).single();
     if (error) return console.error(error);
@@ -123,6 +123,15 @@ export default function Workout() {
     const completedAt = endedAt || new Date(); const minutes = startedAt ? Math.max(0, Math.round((new Date(completedAt) - new Date(startedAt)) / 60000)) : 0;
     const { error: updateError } = await supabase.from('workouts').update({ name, ended_at: completedAt, sets: totalSets, volume: totalVolume, duration: minutes }).eq('id', workoutId);
     if (updateError) return console.error(updateError);
+
+    const { error: postError } = await supabase.from('workout_posts').insert({
+      workout_id: workoutId,
+      user_id: user.id,
+      caption: name || null,
+      visibility: 'public',
+    });
+    if (postError) console.error('Failed to create workout post:', postError);
+
     const ids = [...new Set((workout.workout_sets || []).map((set) => set.exercises?.id).filter(Boolean))];
     let ranks = [];
     if (ids.length) { const { data } = await supabase.from('exercise_ranks').select('exercise_id, rank, best_1rm, exercises(name)').eq('user_id', user.id).in('exercise_id', ids); ranks = data || []; }

@@ -196,7 +196,7 @@ export default function ExerciseDisplay({
           alt=""
           className="workout-card__avatar"
           onError={(event) => {
-            event.currentTarget.src = '/default-avatar.png';
+            event.currentTarget.src = 'https://tse3.mm.bing.net/th/id/OIP.t8GsH1Q3v-NLfvTKIHIc3QHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3';
           }}
         />
       )}

@@ -32,28 +32,16 @@ export function useFoodLogs(userId, dateStr) {
     fetchLogs();
   }, [fetchLogs]);
 
-  // Adds a food to the diary. `food` is a row from the 'foods' table
-  // (per-100g macros); `grams` is how much was actually eaten; macros
-  // are scaled and stored as a snapshot on the log row itself.
-  async function addLog(food, mealType, grams) {
-    const scale = grams / 100;
-
-    const entry = {
-      user_id: userId,
-      food_barcode: food.barcode,
-      food_name: food.name,
-      meal_type: mealType,
-      log_date: dateStr,
-      grams,
-      calories: food.calories_per_100g != null ? food.calories_per_100g * scale : null,
-      protein: food.protein_per_100g != null ? food.protein_per_100g * scale : null,
-      carbs: food.carbs_per_100g != null ? food.carbs_per_100g * scale : null,
-      fat: food.fat_per_100g != null ? food.fat_per_100g * scale : null,
-    };
+  // Inserts an already-computed food_logs entry (user_id/log_date are
+  // filled in here) and updates local state on success. Shared by both
+  // addLog (per-100g foods scaled by grams) and any caller that already
+  // has absolute macro totals to save, like a multi-item meal scan.
+  async function addLogEntry(entry) {
+    const fullEntry = { user_id: userId, log_date: dateStr, ...entry };
 
     const { data, error } = await supabase
       .from('food_logs')
-      .insert(entry)
+      .insert(fullEntry)
       .select()
       .single();
 
@@ -61,6 +49,24 @@ export function useFoodLogs(userId, dateStr) {
       setLogs((prev) => [...prev, data]);
     }
     return { data, error };
+  }
+
+  // Adds a food to the diary. `food` is a row from the 'foods' table
+  // (per-100g macros); `grams` is how much was actually eaten; macros
+  // are scaled and stored as a snapshot on the log row itself.
+  async function addLog(food, mealType, grams) {
+    const scale = grams / 100;
+
+    return addLogEntry({
+      food_barcode: food.barcode,
+      food_name: food.name,
+      meal_type: mealType,
+      grams,
+      calories: food.calories_per_100g != null ? food.calories_per_100g * scale : null,
+      protein: food.protein_per_100g != null ? food.protein_per_100g * scale : null,
+      carbs: food.carbs_per_100g != null ? food.carbs_per_100g * scale : null,
+      fat: food.fat_per_100g != null ? food.fat_per_100g * scale : null,
+    });
   }
 
   async function deleteLog(logId) {
@@ -86,7 +92,7 @@ export function useFoodLogs(userId, dateStr) {
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   );
 
-  return { logs, logsByMeal, totals, loading, addLog, deleteLog, refetch: fetchLogs };
+  return { logs, logsByMeal, totals, loading, addLog, addLogEntry, deleteLog, refetch: fetchLogs };
 }
 
 export { MEAL_TYPES };

@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
 import { useFoodLookup } from '../hooks/useFoodLookup';
 
+
 export default function BarcodeScanner({ onFoodFound, onCancel }) {
   const viewportRef = useRef(null);
   const { startScan, stopScan } = useBarcodeScanner();

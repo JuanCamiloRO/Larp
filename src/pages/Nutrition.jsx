@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFoodLogs, MEAL_TYPES } from '../hooks/useFoodLogs';
 import { useCalorieGoal } from '../hooks/useCalorieGoal';
 import { useRecentFoods } from '../hooks/useRecentFoods';
-import { Camera } from 'lucide-react';
+import { ScanLine } from 'lucide-react';
 import MealScan from '../components/MealScan';
 import FoodSearch from '../components/FoodSearch';
 import LogFoodModal from '../components/LogFoodModal';
@@ -38,7 +38,7 @@ export default function Nutrition() {
 
   // 'logs' (flat list) is needed below to key the recent-foods refetch,
   // so it must be destructured here alongside the grouped/aggregated data.
-  const { logs, logsByMeal, totals, loading, addLog, deleteLog } = useFoodLogs(user?.id, dateStr);
+  const { logs, logsByMeal, totals, loading, addLog, addLogEntry, deleteLog } = useFoodLogs(user?.id, dateStr);
   const { goal, updateGoal } = useCalorieGoal(user?.id);
   const [searchOpenForMeal, setSearchOpenForMeal] = useState(null);
   const { recentFoods, loading: recentLoading, refetchRecent } = useRecentFoods(
@@ -66,6 +66,31 @@ export default function Nutrition() {
     setSearchOpenForMeal(null);
   }
 
+  // Meal scan already returns absolute totals for a (possibly multi-item)
+  // plate rather than a single per-100g food, so it goes through
+  // addLogEntry directly instead of addLog's per-100g scaling path.
+  async function handleConfirmScan(meal, mealType) {
+    const mealTotals = meal.items.reduce(
+      (total, item) => ({
+        calories: total.calories + Number(item?.calories || 0),
+        protein: total.protein + Number(item?.protein || 0),
+        carbs: total.carbs + Number(item?.carbs || 0),
+        fat: total.fat + Number(item?.fat || 0),
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+
+    await addLogEntry({
+      food_name: meal.mealName || 'Scanned meal',
+      meal_type: mealType,
+      grams: 1,
+      ...mealTotals,
+    });
+
+    refetchRecent();
+    setMealScanOpen(false);
+  }
+
   return (
     <div style={{ padding: '16px' }} className="page-transition">
       <h1 style={{ color: 'white', marginBottom: '16px' }}>Nutrition</h1>
@@ -86,19 +111,11 @@ export default function Nutrition() {
         <CalorieGoalEditor goal={goal} onUpdateGoal={updateGoal} />
       </div>
 
-      <button
-  type="button"
-  className="meal-scan-open-btn"
-  onClick={() => setMealScanOpen(true)}
->
-  <Camera size={17} />
-  Scan a meal
-</button>
 
 {mealScanOpen && (
   <MealScan
     defaultMeal={searchOpenForMeal || 'lunch'}
-    onConfirm={handleConfirmLog}
+    onConfirm={handleConfirmScan}
     onClose={() => setMealScanOpen(false)}
   />
 )}
@@ -119,9 +136,22 @@ export default function Nutrition() {
           </div>
 
           {searchOpenForMeal === meal && (
-            <div style={{ marginBottom: '12px' }}>
+            <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <FoodSearch onSelectFood={handleSelectFood} />
-                <ScanBarcodeButton onFoodFound={(food) => setPendingFood(food)} />
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="meal-scan-open-btn"
+                    onClick={() => setMealScanOpen(true)}
+                  >
+                    <ScanLine size={24} />
+                    Scan a meal
+                  </button>
+
+                  <ScanBarcodeButton onFoodFound={(food) => setPendingFood(food)} />
+                </div>
+
                 <RecentFoods recentFoods={recentFoods} loading={recentLoading} onSelectFood={handleSelectFood}/>
             </div>
         )}

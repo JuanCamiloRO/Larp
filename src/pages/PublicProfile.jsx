@@ -116,7 +116,7 @@ export default function PublicProfile() {
         <div className="public-profile-top">
           <img
             className="public-profile-avatar"
-            src={profile?.avatar_url || '/default-avatar.png'}
+            src={profile?.avatar_url || 'https://tse3.mm.bing.net/th/id/OIP.t8GsH1Q3v-NLfvTKIHIc3QHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3'}
             alt={profile?.username || 'User avatar'}
             onError={(event) => {
               event.currentTarget.src = '/default-avatar.png';
