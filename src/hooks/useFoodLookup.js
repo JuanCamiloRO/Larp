@@ -1,8 +1,7 @@
 // hooks/useFoodLookup.js
-// Calls our 'lookup-food' Edge Function, which handles caching against the
+// Calls the 'lookup-food' Edge Function in my backend, which handles caching against the
 // 'foods' table AND the Open Food Facts request (with a proper User-Agent)
-// entirely server-side. This hook no longer talks to Supabase or Open Food
-// Facts directly -- it's a thin client for the one trusted endpoint.
+// entirely server-side. This hook doesn't talks to Supabase or Open Food Facts
 
 import { useState } from 'react';
 import { supabase } from '../supabase';

@@ -1,3 +1,4 @@
+//This hook optimizes the web app so that it only loads when the user is logged in. It was an AI suggestion
 import {
   createContext,
   useContext,

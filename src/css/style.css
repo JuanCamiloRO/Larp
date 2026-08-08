@@ -1367,3 +1367,17 @@ button:not(:disabled):active {
     font-size: 16px;
   }
 }
+
+.exercise-rank-badge--compact .muscle-icon {
+  width: 22px;
+  height: 22px;
+}
+.muscle-icon {
+  width: 22px;
+  height: 22px;
+  padding: 7px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 4px 8px rgba(255, 59, 48, 0.12));
+}

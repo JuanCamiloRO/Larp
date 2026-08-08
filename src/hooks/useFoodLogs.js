@@ -1,9 +1,3 @@
-// hooks/useFoodLogs.js
-// Manages a single day's food diary: fetching logged entries grouped by
-// meal, adding a new entry (with macros pre-computed for the serving size),
-// and deleting an entry. Macros are snapshotted at log time so edits to a
-// food's base data later don't retroactively change past diary entries.
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
 
@@ -33,9 +27,8 @@ export function useFoodLogs(userId, dateStr) {
   }, [fetchLogs]);
 
   // Inserts an already-computed food_logs entry (user_id/log_date are
-  // filled in here) and updates local state on success. Shared by both
-  // addLog (per-100g foods scaled by grams) and any caller that already
-  // has absolute macro totals to save, like a multi-item meal scan.
+  // filled in here) and updates local state on success for immediate feedback. Shared by both
+  // addLog (per-100g foods scaled by grams)
   async function addLogEntry(entry) {
     const fullEntry = { user_id: userId, log_date: dateStr, ...entry };
 
@@ -51,9 +44,7 @@ export function useFoodLogs(userId, dateStr) {
     return { data, error };
   }
 
-  // Adds a food to the diary. `food` is a row from the 'foods' table
-  // (per-100g macros); `grams` is how much was actually eaten; macros
-  // are scaled and stored as a snapshot on the log row itself.
+  // Adds a new log entry by taking the 100g reference from most label by scaling
   async function addLog(food, mealType, grams) {
     const scale = grams / 100;
 
@@ -75,13 +66,13 @@ export function useFoodLogs(userId, dateStr) {
     if (error) fetchLogs(); // revert on failure by refetching real state
   }
 
-  // Groups the flat log list into { breakfast: [...], lunch: [...], ... }
+  // Groups the log list into { breakfast: [...], lunch: [...], ... }
   const logsByMeal = MEAL_TYPES.reduce((acc, meal) => {
     acc[meal] = logs.filter((l) => l.meal_type === meal);
     return acc;
   }, {});
 
-  // Running daily totals across all meals
+  // Running daily totals across all meals functionally instead of imperatively (recap programming languages course in uni)
   const totals = logs.reduce(
     (acc, l) => ({
       calories: acc.calories + (l.calories || 0),

@@ -126,14 +126,20 @@
 
 /* Meal sections */
 .meal-section {
-  margin-bottom: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 16px;
 }
 
 .meal-section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  gap: 16px;
+  color: var(--text-dim);
 }
 
 .meal-add-btn {
@@ -155,10 +161,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.meal-food-row:last-child {
+  border-bottom: none;
 }
 
 .meal-food-delete {

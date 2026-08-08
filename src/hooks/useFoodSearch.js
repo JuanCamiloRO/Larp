@@ -1,7 +1,6 @@
 // hooks/useFoodSearch.js
 // Text-based food search (MyFitnessPal-style), separate from barcode lookup.
-// Calls the 'search-food' Edge Function, which queries Open Food Facts'
-// search endpoint server-side and returns a list of matching products.
+// Calls the 'search-food' Edge Function in my supabase, which queries Open Food Facts'
 
 import { useState } from 'react';
 import { supabase } from '../supabase';

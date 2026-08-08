@@ -1,8 +1,4 @@
 // components/BarcodeScanner.jsx
-// Now renders full-screen (see .scanner-overlay CSS: position: fixed,
-// 100vw/100vh). Cancel button moved to overlay the video top-right instead
-// of sitting in the status bar, since the viewport now claims all
-// available vertical space via flex: 1.
 
 import { useEffect, useRef, useState } from 'react';
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner';

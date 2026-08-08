@@ -66,6 +66,10 @@ export default function Nutrition() {
     setSearchOpenForMeal(null);
   }
 
+  function mealCalories(logs) {
+  return logs.reduce((sum, log) => sum + (log.calories || 0), 0);
+}
+
   // Meal scan already returns absolute totals for a (possibly multi-item)
   // plate rather than a single per-100g food, so it goes through
   // addLogEntry directly instead of addLog's per-100g scaling path.
@@ -127,6 +131,7 @@ export default function Nutrition() {
         <div key={meal} className="meal-section">
           <div className="meal-section-header">
             <span className="follow-name">{MEAL_LABELS[meal]}</span>
+            <span className="subtle">{Math.round(mealCalories(logsByMeal[meal]))} kcal</span>
             <button
               className="meal-add-btn"
               onClick={() => setSearchOpenForMeal(searchOpenForMeal === meal ? null : meal)}

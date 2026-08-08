@@ -9,6 +9,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useExerciseLeaderboard } from '../hooks/useExerciseLeaderboard';
 import { useFollowedUserIds } from '../hooks/useFollowedUserIds';
 import ExercisePicker from '../components/ExercisePicker';
+import ExerciseRankBadge from '../components/ExerciseRankBadge';
+import { TIERS } from '../lib/rankTiers';
 import '../css/leaderboard.css';
 
 const IMAGE_BASE_URL = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
@@ -145,6 +147,7 @@ export default function Leaderboard() {
         <div className="leaderboard-list">
           {leaderboard.map((entry, index) => {
             const isYou = entry.user_id === user?.id;
+            const exerciseRank = TIERS[selectedExercise.rank]
             return (
               <div
                 key={entry.user_id}
@@ -168,7 +171,7 @@ export default function Leaderboard() {
                     {isYou && <span className="leaderboard-you-tag"> (you)</span>}
                   </span>
                 </div>
-
+                <ExerciseRankBadge exerciseId={selectedExercise.id} userId={entry.user_id} compact={true} />
                 <span className="leaderboard-1rm">
                   {Math.round(entry.best_1rm)}kg
                 </span>

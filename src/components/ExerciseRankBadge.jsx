@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { TIERS } from '../lib/rankTiers';
 
-export default function ExerciseRankBadge({ exerciseId, userId }) {
+export default function ExerciseRankBadge({ exerciseId, userId, compact = false }) {
   const [rank, setRank] = useState(null);
 
   useEffect(() => {
@@ -29,9 +29,15 @@ export default function ExerciseRankBadge({ exerciseId, userId }) {
   if (!tier) return null;
 
   return (
-    <span className="exercise-rank-badge">
-      <img src={tier.icon} alt={tier.label} className="rank-icon" />
-      {tier.label}
-    </span>
+    compact ? (
+  <span >
+    <img src={tier.icon} alt={tier.label} className="muscle-icon"  style={{width: "38px", height: "38px"}}   />
+  </span>
+) : (
+  <span className="exercise-rank-badge">
+    <img src={tier.icon} alt={tier.label} className="rank-icon" />
+    <span className="exercise-rank-label">{tier.label}</span>
+  </span>
+)
   );
 }

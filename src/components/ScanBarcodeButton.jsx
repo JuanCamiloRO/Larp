@@ -2,8 +2,7 @@
 // Self-contained trigger + scanner pair. Renders a "Scan Barcode" button;
 // tapping it opens the full-screen BarcodeScanner overlay. On a successful
 // detection + food lookup, the scanner closes itself automatically and
-// hands the found food up via onFoodFound -- the parent doesn't need to
-// manage any open/closed state itself.
+// hands the found food up via onFoodFound.
 
 import { useState } from 'react';
 import { QrCode } from 'lucide-react';
