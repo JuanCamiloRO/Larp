@@ -1381,3 +1381,10 @@ button:not(:disabled):active {
   box-shadow: none;
   filter: drop-shadow(0 4px 8px rgba(255, 59, 48, 0.12));
 }
+
+.follow-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}

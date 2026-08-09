@@ -1,4 +1,5 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useParams, } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
@@ -6,6 +7,8 @@ import { useWorkout } from '../hooks/useWorkout';
 import ExerciseDisplay from '../components/ExerciseDisplay';
 import MuscleHeatmap from '../components/MuscleHeatmap';
 import FollowButton from '../components/FollowButton';
+import ViewFollowers from '../components/ViewFollowers';
+import ViewFollowed from '../components/ViewFollowed';
 import '../css/style.css';
 import '../css/social.css';
 
@@ -59,6 +62,8 @@ export default function PublicProfile() {
   const latestWorkout = workouts?.[0] ? [workouts[0]] : [];
   const workoutCount = workouts?.length || 0;
   const isOwnProfile = user?.id === userId;
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowed, setShowFollowed] = useState(false);
 
   if (profileLoading) {
     return <PublicProfileSkeleton />;
@@ -136,8 +141,9 @@ export default function PublicProfile() {
 
             <div className="public-profile-stat">
               <span className="public-profile-stat__number">
-                {profile?.followers ?? 0}
+                <label style={{ backgroundColor: 'transparent', border: 'none' }} onClick={() => setShowFollowers(true) }>{profile?.followers ?? 0}</label>
               </span>
+            {showFollowers && <ViewFollowers userId={userId} onClose={() => setShowFollowers(false)} />}
 
               <span className="public-profile-stat__label">
                 Followers
@@ -146,8 +152,10 @@ export default function PublicProfile() {
 
             <div className="public-profile-stat">
               <span className="public-profile-stat__number">
-                {profile?.following ?? 0}
+                <label style={{ backgroundColor: 'transparent', border: 'none' }} onClick={() => setShowFollowed(true) }>{profile?.following ?? 0}</label>
               </span>
+
+              {showFollowed && <ViewFollowed userId={userId} onClose={() => setShowFollowed(false)} />}
 
               <span className="public-profile-stat__label">
                 Following

@@ -3,6 +3,7 @@ import Home from './pages/Home.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Discover from './pages/Discover.jsx';
 import ExploreRoutines from './components/ExploreRoutines.jsx';
+import ViewFollowers from './components/ViewFollowers.jsx';
 import Workout from './pages/Workout.jsx';
 import Leaderboard from './pages/Leaderboard.jsx';
 import Login from './pages/Login.jsx';
@@ -32,6 +33,7 @@ export default function App() {
       <Route path="/workout" element={<ProtectedRoute><Workout /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/profile/:userId" element={<PublicProfile />} />
+      <Route path="/:userId/followers" element={<ViewFollowers />} />
       <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
       <Route path="/login" element={<Login />} />
       <Route path="/nutrition" element={<ProtectedRoute><Nutrition /></ProtectedRoute>} />

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, ChevronUp, Plus, Trash } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useAuth } from '../hooks/useAuth';
+import { Lock } from 'lucide-react';
 import ExercisePicker from '../components/ExercisePicker';
 import '../css/routine-editor.css';
 
@@ -11,6 +12,7 @@ export default function RoutineEditor() {
   const { user } = useAuth();
   const [showPicker, setShowPicker] = useState(false);
   const [name, setName] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
   const [routineExercises, setRoutineExercises] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -91,6 +93,7 @@ export default function RoutineEditor() {
       .insert({
         user_id: user.id,
         name: trimmedName,
+        is_public: isPublic,
       })
       .select()
       .single();
@@ -157,6 +160,8 @@ export default function RoutineEditor() {
           Routine name
         </label>
 
+
+        <span style={{ display: 'flex', gap: '1rem' }}>
         <input
           id="routine-name"
           className="routine-editor-name-input"
@@ -165,7 +170,21 @@ export default function RoutineEditor() {
           maxLength={80}
           onChange={(event) => setName(event.target.value)}
           autoFocus
+          style={{ width: '50%' }}
         />
+
+        <select
+          className="routine-editor-name-input"
+          value={isPublic ? 'public' : 'private'}
+          onChange={(event) => setIsPublic(event.target.value === 'public')}
+          style={{ width: '50%' }}
+        >
+          <option value="public">Public</option>
+          <option value="private">Private</option>
+        </select>
+        </span>
+
+        
 
         <div className="routine-editor-section-header">
           <span>Exercises</span>

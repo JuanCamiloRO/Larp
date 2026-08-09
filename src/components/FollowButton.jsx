@@ -40,11 +40,17 @@ export default function FollowButton({ targetUserId, style }) {
     setIsFollowing(!isFollowing);
   }
 
+  if (user?.id === targetUserId) {
+    return null;
+  }
+
   const showUnfollow = isFollowing && isHovering;
 
   let Icon = UserPlus;
   let label = 'Follow';
   let className = 'btn-primary follow-btn';
+
+  
 
   if (isFollowing) {
     Icon = showUnfollow ? UserMinus : UserCheck;

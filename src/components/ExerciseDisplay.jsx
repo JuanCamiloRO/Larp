@@ -102,6 +102,7 @@ export default function ExerciseDisplay({
   authorProfile= null,
   showAuthor = true,
   exercisePreviewCount = 3,
+  showActions= true,
 }) {
   const [expandedWorkouts, setExpandedWorkouts] = useState({});
   const [commentPost, setCommentPost] = useState(null);
@@ -297,6 +298,7 @@ export default function ExerciseDisplay({
                 )}
               </button>
             )}
+           {showActions && (
             <WorkoutPostActions
   postId={workout.post_id}
   initialLikeCount={workout.like_count}
@@ -304,6 +306,9 @@ export default function ExerciseDisplay({
   commentCount={workout.comment_count}
   onComment={() => setCommentPost(workout)}
 />
+             
+           )}
+            
 
 {commentPost && (
   <WorkoutPostComments
