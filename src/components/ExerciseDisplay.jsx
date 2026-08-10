@@ -301,6 +301,7 @@ export default function ExerciseDisplay({
            {showActions && (
             <WorkoutPostActions
   postId={workout.post_id}
+  postOwnerId={workout.user_id}
   initialLikeCount={workout.like_count}
   initiallyLiked={workout.liked_by_user}
   commentCount={workout.comment_count}
@@ -313,6 +314,7 @@ export default function ExerciseDisplay({
 {commentPost && (
   <WorkoutPostComments
     postId={commentPost.post_id}
+    postOwnerId={commentPost.user_id}
     onClose={() => setCommentPost(null)}
     onCountChange={(nextCount) => {
       commentPost.comment_count = nextCount;

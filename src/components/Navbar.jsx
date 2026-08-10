@@ -15,6 +15,9 @@ export default function NavBar() {
   const { isActive } = useWorkoutContext();
   const location = useLocation();
 
+  const loginPage = location.pathname === '/login' || location.pathname === '/signup';
+  if (loginPage) return;
+
   const isWorkoutPage =
     location.pathname === '/workout' ||
     location.pathname.startsWith('/workout/');

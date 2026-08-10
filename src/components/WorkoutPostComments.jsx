@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Send, Trash2, X } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { useProfile } from '../hooks/useProfile';
 import { supabase } from '../supabase';
 import '../css/home.css';
 
@@ -14,15 +16,17 @@ function formatCommentDate(value) {
 
 export default function WorkoutPostComments({
   postId,
+  postOwnerId,
   onClose,
   onCountChange,
 }) {
+  const { user } = useAuth();
+  const { profile } = useProfile(user?.id);
   const [comments, setComments] = useState([]);
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
-  const [currentUserId, setCurrentUserId] = useState(null);
 
   function WorkoutPostCommentsSkeleton() {
     return (
@@ -52,13 +56,6 @@ export default function WorkoutPostComments({
     async function loadComments() {
       setLoading(true);
       setError(null);
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!active) return;
-      setCurrentUserId(user?.id || null);
 
       const { data, error: commentsError } = await supabase
         .from('workout_post_comments')
@@ -101,16 +98,7 @@ export default function WorkoutPostComments({
     event.preventDefault();
 
     const trimmedBody = body.trim();
-    if (!trimmedBody || sending) return;
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      setError('You must be signed in to comment.');
-      return;
-    }
+    if (!trimmedBody || sending || !user) return;
 
     setSending(true);
     setError(null);
@@ -139,6 +127,25 @@ export default function WorkoutPostComments({
       return;
     }
 
+    if (postOwnerId && user.id !== postOwnerId) {
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: postOwnerId,
+          actor_id: user.id,
+          type: 'comment',
+          title: 'New comment',
+          actor_avatar_url: profile?.avatar_url || null,
+          body: `${profile?.username || 'Someone'} commented on your post`,
+          link: data?.id ? `/posts/${postId}` : null,
+          reference_id: data?.id,
+        });
+
+      if (notificationError) {
+        console.error('Failed to create comment notification:', notificationError);
+      }
+    }
+
     setComments((current) => [...current, data]);
     setBody('');
     onCountChange?.(comments.length + 1);
@@ -150,12 +157,25 @@ export default function WorkoutPostComments({
       .from('workout_post_comments')
       .delete()
       .eq('id', commentId)
-      .eq('user_id', currentUserId);
+      .eq('user_id', user?.id);
 
     if (deleteError) {
       console.error('Comment delete failed:', deleteError);
       setError(deleteError.message);
       return;
+    }
+
+    if (postOwnerId && user?.id !== postOwnerId) {
+      const { error: deleteNotifError } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', postOwnerId)
+        .eq('actor_id', user.id)
+        .eq('type', 'comment');
+
+      if (deleteNotifError) {
+        console.error('Failed to delete comment notification:', deleteNotifError);
+      }
     }
 
     setComments((current) => current.filter((comment) => comment.id !== commentId));
@@ -220,7 +240,7 @@ export default function WorkoutPostComments({
                     <p>{comment.body}</p>
                   </div>
 
-                  {comment.user_id === currentUserId && (
+                  {comment.user_id === user?.id && (
                     <button
                       type="button"
                       className="workout-comment-delete"
@@ -253,7 +273,7 @@ export default function WorkoutPostComments({
           >
             <Send size={17} />
           </button>
-          <div style = {{height: 'calc(104px + env(safe-area-inset-bottom, 0px))'}}></div>
+          <div style={{ height: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}></div>
         </form>
       </section>
     </div>

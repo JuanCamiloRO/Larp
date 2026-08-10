@@ -265,6 +265,7 @@ button:not(:disabled):active {
   border-top: 1px solid var(--border);
   padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
   z-index: 100;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
 }
 
 .nav-item {
@@ -279,6 +280,8 @@ button:not(:disabled):active {
 
 .nav-item.active {
   color: var(--text);
+  border-bottom: 2px solid var(--accent);
+  
 }
 
 .nav-center {
@@ -1064,7 +1067,7 @@ button:not(:disabled):active {
 @media (max-width: 520px) {
   .panel { padding: 20px; }
   .page-title { font-size: 1.9rem; }
-  .form-row { flex-direction: column; }
+  .form-row { flex-direction: row; }
 }
 
 @media (max-width: 380px) {

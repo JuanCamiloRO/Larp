@@ -66,7 +66,27 @@
   }
 }
 
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+
 /* Home */
+
+.home-page {
+  padding: 16px;
+}
 
 .home-header {
   display: flex;
@@ -79,18 +99,47 @@
   margin: 0;
 }
 
+.home-header-buttons {
+  display: flex;
+  justify-content: right;
+  align-items: center;
+  gap: 8px;
+}
+
 .home-discover-button {
   display: grid;
   width: 44px;
   height: 44px;
   place-items: center;
-  border-radius: 50%;
-  background: #1c1c1e;
   color: #fff;
   text-decoration: none;
   transition:
     background-color 150ms ease,
     transform 120ms ease;
+}
+
+.home-notification-button {
+  position: relative;
+  display: grid;
+  background-color: transparent;
+  border: 0;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  color: #fff;
+  text-decoration: none;
+  transition:
+    background-color 150ms ease,
+    transform 120ms ease;
+}
+
+.home-notification-button:hover {
+  background: #242426;
+}
+
+.home-notification-button:active {
+  background: #2c2c2e;
+  transform: scale(0.94);
 }
 
 .home-discover-button:hover {

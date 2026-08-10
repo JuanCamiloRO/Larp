@@ -41,14 +41,13 @@ export default function RoutineEditor() {
   }
 
   function updateSets(index, value) {
-    const defaultSets = Math.min(20, Math.max(1, Number(value) || 1));
-
-    setRoutineExercises((current) =>
-      current.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, defaultSets } : item
-      )
-    );
-  }
+  const defaultSets = value === '' ? '' : Number(value) || 1;
+  setRoutineExercises((current) =>
+    current.map((item, itemIndex) =>
+      itemIndex === index ? { ...item, defaultSets } : item
+    )
+  );
+}
 
   function removeExercise(index) {
     setRoutineExercises((current) =>
@@ -79,6 +78,15 @@ export default function RoutineEditor() {
       setError('Add at least one exercise.');
       return;
     }
+
+    const hasInvalidSets = routineExercises.some(
+    (item) => item.defaultSets === '' || Number(item.defaultSets) < 1
+  );
+
+  if (hasInvalidSets) {
+    setError('Please give valid input for sets.');
+    return;
+  }
 
     if (!user?.id) {
       setError('You must be logged in to save a routine.');
@@ -119,7 +127,7 @@ export default function RoutineEditor() {
     if (exercisesError) {
       console.error('Failed to add routine exercises:', exercisesError);
       await supabase.from('routines').delete().eq('id', routine.id);
-      setError('Could not save the exercises. Please try again.');
+      setError('Could not save exercises. Please try again.');
       setSaving(false);
       return;
     }
@@ -210,11 +218,8 @@ export default function RoutineEditor() {
                     Sets
                     <input
                       type="number"
-                      min="1"
-                      max="20"
-                      inputMode="numeric"
                       value={item.defaultSets}
-                      onChange={(event) => updateSets(index, event.target.value)}
+                      onChange={(event) => {updateSets(index, event.target.value);} }
                       aria-label={`Default sets for ${item.exercise.name}`}
                     />
                   </label>

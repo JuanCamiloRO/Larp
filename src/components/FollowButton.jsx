@@ -7,11 +7,13 @@
 import { useState, useEffect } from 'react';
 import { UserPlus, UserCheck, UserMinus } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useProfile } from '../hooks/useProfile';
 import { supabase } from '../supabase';
 import '../css/social.css';
 
 export default function FollowButton({ targetUserId, style }) {
   const { user } = useAuth();
+  const { profile } = useProfile(user.id);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
 
@@ -20,6 +22,13 @@ export default function FollowButton({ targetUserId, style }) {
     checkFollowStatus();
   }, [user, targetUserId]);
 
+  function resolveImageUrl(image) {
+  if (!image) return null;
+
+  return image.startsWith('http')
+    ? image
+    : `${IMAGE_BASE_URL}${image}`;
+}
   async function checkFollowStatus() {
     const { data } = await supabase
       .from('follows')
@@ -34,8 +43,18 @@ export default function FollowButton({ targetUserId, style }) {
     if (isFollowing) {
       await supabase.from('follows').delete()
         .eq('follower_id', user.id).eq('following_id', targetUserId);
+      await supabase.from('notifications').delete()
+    .eq('user_id', targetUserId).eq('actor_id', user.id).eq('type', 'follow');
     } else {
       await supabase.from('follows').insert({ follower_id: user.id, following_id: targetUserId });
+      await supabase.from('notifications').insert({
+    user_id: targetUserId,
+    actor_id: user.id,
+    type: 'follow',
+    title: 'New follower',
+    actor_avatar_url: resolveImageUrl(profile?.avatar_url),
+    body: ` ${profile.username || 'Someone'} started following you`,
+  });
     }
     setIsFollowing(!isFollowing);
   }

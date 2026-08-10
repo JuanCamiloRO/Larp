@@ -16,6 +16,7 @@ const MEAL_LABELS = {
 export default function LogFoodModal({ food, defaultMeal, onConfirm, onCancel }) {
   const [grams, setGrams] = useState(100);
   const [mealType, setMealType] = useState(defaultMeal || 'breakfast');
+  const [error, setError] = useState(null);
 
   // Recompute macros live as the user adjusts serving size
   const scaledMacros = useMemo(() => {
@@ -29,7 +30,7 @@ export default function LogFoodModal({ food, defaultMeal, onConfirm, onCancel })
   }, [grams, food]);
 
   function handleConfirm() {
-    if (grams <= 0) return;
+    if (grams <= 0) { setError('Must log at least 1 gram'); return;};
     onConfirm(food, mealType, grams);
   }
 
@@ -49,9 +50,9 @@ export default function LogFoodModal({ food, defaultMeal, onConfirm, onCancel })
           type="number"
           className="food-search-input"
           value={grams}
-          min={1}
-          onChange={(e) => setGrams(Number(e.target.value))}
+          onChange={(e) => setGrams((e.target.value))}
         />
+        <span style={{ color: 'red' }} className="subtle">{error}</span>
 
         <label className="modal-label" style={{ marginTop: '14px' }}>Meal</label>
         <div className="meal-selector">

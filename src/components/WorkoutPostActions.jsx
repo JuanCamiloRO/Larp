@@ -1,15 +1,20 @@
 import { useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { useProfile } from '../hooks/useProfile';
 import { Heart, MessageCircle } from 'lucide-react';
 import { supabase } from '../supabase';
 import '../css/home.css';
 
 export default function WorkoutPostActions({
   postId,
+  postOwnerId,
   initialLikeCount = 0,
   initiallyLiked = false,
   commentCount = 0,
   onComment,
 }) {
+  const { user } = useAuth();
+  const { profile } = useProfile(user?.id);
   const [liked, setLiked] = useState(initiallyLiked);
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [saving, setSaving] = useState(false);
@@ -20,16 +25,6 @@ export default function WorkoutPostActions({
         postId,
         saving,
       });
-      return;
-    }
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError) {
-      console.error('Could not get authenticated user:', authError);
       return;
     }
 
@@ -67,6 +62,42 @@ export default function WorkoutPostActions({
 
       setLiked(previousLiked);
       setLikeCount(previousCount);
+      setSaving(false);
+      return;
+    }
+
+    if (postOwnerId && user.id !== postOwnerId) {
+      if (nextLiked) {
+        const { error: notificationError } = await supabase
+          .from('notifications')
+          .insert({
+            user_id: postOwnerId,
+            actor_id: user.id,
+            type: 'like',
+            title: 'New like',
+            actor_avatar_url: profile?.avatar_url || null,
+            body: `${profile?.username || 'Someone'} liked your post`,
+            reference_id: postId,
+          });
+
+        if (notificationError) {
+          console.error('Failed to create like notification:', notificationError);
+        }
+      } else {
+        console.log({ postOwnerId, userId: user.id, postId })
+        const { data: deletedRows, error: deleteNotifError } = await supabase
+  .from('notifications')
+  .delete()
+  .eq('actor_id', user.id)
+  .eq('type', 'like')
+  .eq('reference_id', postId);
+
+
+
+        if (deleteNotifError) {
+          console.error('Failed to delete like notification:', deleteNotifError);
+        }
+      }
     }
 
     setSaving(false);

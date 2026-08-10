@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useFoodLogs, MEAL_TYPES } from '../hooks/useFoodLogs';
 import { useCalorieGoal } from '../hooks/useCalorieGoal';
 import { useRecentFoods } from '../hooks/useRecentFoods';
-import { ScanLine } from 'lucide-react';
+import { ScanLine, ArrowLeft } from 'lucide-react';
 import MealScan from '../components/MealScan';
 import FoodSearch from '../components/FoodSearch';
 import LogFoodModal from '../components/LogFoodModal';
@@ -35,6 +36,7 @@ export default function Nutrition() {
   const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const dateStr = formatDateStr(currentDate);
+  const navigate = useNavigate();
 
   // 'logs' (flat list) is needed below to key the recent-foods refetch,
   // so it must be destructured here alongside the grouped/aggregated data.
@@ -95,10 +97,27 @@ export default function Nutrition() {
     setMealScanOpen(false);
   }
 
-  return (
-    <div style={{ padding: '16px' }} className="page-transition">
-      <h1 style={{ color: 'white', marginBottom: '16px' }}>Nutrition</h1>
 
+  return (
+    <div className="page-transition">
+    <div>
+      <header className="settings-header" style={{ marginBottom: '12px' }}>
+        <button
+          type="button"
+          className="settings-header__back"
+          onClick={() => navigate(-1)}
+          aria-label="Go back"
+        >
+          <ArrowLeft size={21} />
+        </button>
+        <div>
+        <p>Nutrition</p>
+        <h1>Log your meals</h1>
+        </div>
+      </header>
+      </div>
+
+      <div style={{ padding: '16px' }}>
       <div className="date-nav">
         <button className="date-nav-btn" onClick={() => changeDay(-1)}>‹</button>
         <span className="date-nav-label">{formatDisplayDate(currentDate)}</span>
@@ -194,6 +213,7 @@ export default function Nutrition() {
       <p className="subtle" style={{ marginTop: '24px', fontSize: '11px' }}>
         Nutrition data from Open Food Facts, available under the Open Database License.
       </p>
+    </div>
     </div>
   );
 }

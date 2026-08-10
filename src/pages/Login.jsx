@@ -33,7 +33,6 @@ export default function Login() {
       <div className="panel">
         <div className="panel-header">
           <span className="brand">Larp</span>
-          <Link to="/" className="icon-btn">←</Link>
         </div>
 
         <h1 className="page-title">Welcome</h1>

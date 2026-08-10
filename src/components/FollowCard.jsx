@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../hooks/useAuth';
+import { useProfile } from '../hooks/useProfile';
 import { useRandomProfiles } from '../hooks/useRandomProfiles';
 import { UserPlus, UserCheck } from 'lucide-react';
 import FollowButton from './FollowButton';
@@ -29,6 +30,7 @@ function FollowCardSkeleton() {
 
 export default function FollowCard() {
   const { user } = useAuth();
+  const { profile } = useProfile(user.id);
   const navigate = useNavigate();
   const { suggestions, loading } = useRandomProfiles(5);
   const [following, setFollowing] = useState({});
@@ -69,7 +71,15 @@ export default function FollowCard() {
           .eq('following_id', targetId)
       : await supabase
           .from('follows')
-          .insert({ follower_id: user.id, following_id: targetId });
+          .insert({ follower_id: user.id, following_id: targetId })
+          ;
+          await supabase.from('notifications').insert({
+    user_id: targetUserId,
+    actor_id: user.id,
+    type: 'follow',
+    title: 'New follower',
+    body: `${profile.username || 'Someone'} started following you`,
+  });
 
     if (error) {
       setFollowing((prev) => ({ ...prev, [targetId]: wasFollowing }));

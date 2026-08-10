@@ -12,6 +12,7 @@ export default function SignUp() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
     console.log(username,email,height,weight,gender);
     console.log(password,confirmPassword,error);
     
@@ -58,7 +59,8 @@ export default function SignUp() {
             setError(error.message)
         } else {
             // Limpiar formulario
-            setError('Cuenta creada correctamente.')
+            setError('')
+            setSuccess('Cuenta creada correctamente.')
             setUsername('')
             setWeight('')
             setHeight('')
@@ -67,6 +69,9 @@ export default function SignUp() {
             setConfirmPassword('')
             setGender('')
             setAge('')
+            timeout(() => {
+                navigate('/login')
+            }, 2000)
         }
         setLoading(false)
     }
@@ -95,7 +100,8 @@ export default function SignUp() {
             <option value="male">Male</option>
             <option value="female">Female</option>
           </select>
-        {error}
+        {error && <span style={{ color: 'red', marginTop: '10px' }} className="small-text">{error}</span>}
+        {success && <span style={{ color: 'green', marginTop: '10px' }} className="small-text">{success}</span>}
           
         </div>
 
