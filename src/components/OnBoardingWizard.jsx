@@ -23,6 +23,41 @@ const FREQUENCIES = [
   { value: 6, label: "6 days", desc: "Larper" },
 ];
 
+function calculateMaintenanceCalories({ age, weight, height, experience, goal, frequency }) {
+  const parsedAge = Number(age);
+  const parsedWeight = Number(weight);
+  const parsedHeight = Number(height);
+  const parsedFrequency = Number(frequency);
+
+  if ([parsedAge, parsedWeight, parsedHeight, parsedFrequency].some((value) => Number.isNaN(value) || value <= 0)) {
+    return null;
+  }
+
+  const baseBmr = 10 * parsedWeight + 6.25 * parsedHeight - 5 * parsedAge + 5;
+  const activityMultiplier = {
+    2: 1.2,
+    3: 1.375,
+    4: 1.55,
+    5: 1.725,
+    6: 1.9,
+  }[parsedFrequency] || 1.2;
+
+  const trainingAdjustment = {
+    beginner: 0.95,
+    intermediate: 1,
+    advanced: 1.05,
+  }[experience] || 1;
+
+  const goalAdjustment = {
+    muscle: 200,
+    fatloss: -250,
+    strength: 100,
+    maintain: 0,
+  }[goal] || 0;
+
+  return Math.max(1200, Math.round(baseBmr * activityMultiplier * trainingAdjustment + goalAdjustment));
+}
+
 function OnboardingWizard({ userId, onComplete }) {
   const [step, setStep] = useState(0);
   const [data, setData] = useState({
@@ -67,6 +102,15 @@ function OnboardingWizard({ userId, onComplete }) {
   const finish = async () => {
     setSaving(true);
     try {
+      const maintenanceCalories = calculateMaintenanceCalories({
+        age: data.age,
+        weight: data.weight,
+        height: data.height,
+        experience: data.experience,
+        goal: data.goal,
+        frequency: data.frequency,
+      });
+
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -77,6 +121,7 @@ function OnboardingWizard({ userId, onComplete }) {
           experience: data.experience,
           goal: data.goal,
           frequency: Number(data.frequency),
+          daily_calorie_goal: maintenanceCalories,
           onboarding_completed: true,
         })
         .eq("id", userId);
@@ -252,6 +297,9 @@ function OnboardingWizard({ userId, onComplete }) {
           <>
             <h2 style={titleStyle}>How many days a week do you train?</h2>
             <p style={descStyle}>We'll suggest the optimal routine for you.</p>
+            <p style={{ ...descStyle, marginBottom: 12 }}>
+              Based on your info, we’ll set your calorie goal to about {calculateMaintenanceCalories(data) || "..."} kcal/day.
+            </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {FREQUENCIES.map((f) => (
                 <button
@@ -269,7 +317,7 @@ function OnboardingWizard({ userId, onComplete }) {
                     cursor: "pointer",
                   }}
                 >
-                  <span style={{ fontSize: 15, fontWeight: 800 }}>{f.label} <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, fontWeight: 500 }}>/ semana</span></span>
+                  <span style={{ fontSize: 15, fontWeight: 800 }}>{f.label} <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, fontWeight: 500 }}>/ week</span></span>
                   <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{f.desc}</span>
                 </button>
               ))}

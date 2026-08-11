@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { PoseLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import { calcularScores, calcularMasaDef } from "../lib/poseUtils";
 import { supabase } from '../supabase';
@@ -11,6 +11,36 @@ function BodyScan({ onClose }) {
   const [perfil, setPerfil] = useState({ peso: "", altura: "", grasa: "", sexo: "H" });
   const [inputKey, setInputKey] = useState(0);
   const imagenRef = useRef(null);
+
+  // Precargar peso y altura desde el perfil al montar
+  useEffect(() => {
+    async function cargarPerfil() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("weight, height, body_fat, gender")
+        .eq("id", user.id)
+        .single();
+
+      if (error) {
+        console.log("No se pudo cargar perfil previo:", error.message);
+        return;
+      }
+
+      if (data) {
+        setPerfil((p) => ({
+          ...p,
+          peso: data.weight?.toString() || "",
+          altura: data.height?.toString() || "",
+          grasa: data.body_fat?.toString() || "",
+          sexo: data.gender === "female" ? "M" : "H",
+        }));
+      }
+    }
+    cargarPerfil();
+  }, []);
 
   const resetearTodo = useCallback(() => {
     if (foto) URL.revokeObjectURL(foto);
@@ -51,6 +81,14 @@ function BodyScan({ onClose }) {
     setCargando(true);
 
     try {
+      // 1. Obtener usuario UNA sola vez
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        alert("Sesión no válida. Inicia sesión de nuevo.");
+        setCargando(false);
+        return;
+      }
+
       const detector = await crearDetector();
       const deteccion = detector.detect(imagenRef.current);
 
@@ -85,8 +123,9 @@ function BodyScan({ onClose }) {
       const final = { ...scores, scoreMusc, scoreDef, scoreTotal: overall };
       setResultado(final);
 
-      await supabase.from("body_scans").insert({
-        user_id: (await supabase.auth.getUser()).data.user.id,
+      // 2. Guardar scan en body_scans
+      const { error: scanError } = await supabase.from("body_scans").insert({
+        user_id: user.id,
         score_potencial: final.scorePotencial,
         score_simetria: final.scoreSimetria,
         score_postura: final.scorePostura,
@@ -94,16 +133,33 @@ function BodyScan({ onClose }) {
         score_def: final.scoreDef,
         score_total: final.scoreTotal,
       });
+
+      if (scanError) {
+        console.error("Error guardando body_scans:", scanError);
+        alert("Error guardando el scan: " + scanError.message);
+      }
+
+      // 3. Guardar peso y altura en profiles (CORREGIDO)
       if (perfil.peso && perfil.altura) {
-        const { data: { user } } = await supabase.auth.getUser();
-        await supabase
+        const updates = {
+          weight: Number(perfil.peso),
+          height: Number(perfil.altura),
+        };
+        if (perfil.grasa) {
+          updates.body_fat = Number(perfil.grasa);
+        }
+
+        const { error: profileError } = await supabase
           .from("profiles")
-          .update({
-            weight: Number(perfil.peso),
-            height: Number(perfil.altura),
-            // opcional: updated_at: new Date().toISOString()
-          })
+          .update(updates)
           .eq("id", user.id);
+
+        if (profileError) {
+          console.error("Error actualizando perfil:", profileError);
+          alert("Error guardando peso/altura en perfil: " + profileError.message);
+        } else {
+          console.log("✅ Perfil actualizado correctamente:", updates);
+        }
       }
     } catch (err) {
       console.error(err);
