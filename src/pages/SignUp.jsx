@@ -1,34 +1,31 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { supabase } from '../supabase';
+
 export default function SignUp() {
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
-    const [gender, setGender] = useState('male');
-    const [height, setHeight] = useState('');
-    const [weight, setWeight] = useState('');
-    const [age, setAge] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    const navigate = useNavigate(); 
-    console.log(username,email,height,weight,gender);
-    console.log(password,confirmPassword,error);
+    const navigate = useNavigate();
     
     const handleSignUp = async (e) => {
         e.preventDefault()
         setLoading(true)
         setError('')
         
-        if (!email || !password || !username || !height || !weight || !gender ||!age) {
+        if (!email || !password || !username) {
             setError('Please, fill all the fields')
             setLoading(false)
             return
         }
-        if (!email.includes("@")){
-          setError('Email in wrong format')
+        if (!email.includes('@')) {
+            setError('Email in wrong format')
+            setLoading(false)
+            return
         }
         if (password.length < 8) {
             setError('Password must have at least 8 digits')
@@ -47,11 +44,7 @@ export default function SignUp() {
             password,
             options: {
                 data: {
-                    username: username,
-                    height: height,
-                    weight: weight,
-                    gender: gender,
-                    age: age
+                    username,
                 }
             }
         })
@@ -63,14 +56,10 @@ export default function SignUp() {
             setError('')
             setSuccess('Cuenta creada correctamente.')
             setUsername('')
-            setWeight('')
-            setHeight('')
             setEmail('')
             setPassword('')
             setConfirmPassword('')
-            setGender('')
-            setAge('')
-            timeout(() => {
+            setTimeout(() => {
                 navigate('/onboarding')
             }, 2000)
         }
@@ -94,16 +83,8 @@ export default function SignUp() {
         </div>
 
         <div className="form-row" style={{ marginBottom: '22px' }}>
-          <input onChange={(e) => setAge(e.target.value)} className="input-field" type="number" placeholder="age" />
-          <input onChange={(e) => setHeight(e.target.value)} className="input-field" type="number" placeholder="cm" />
-          <input onChange={(e) => setWeight(e.target.value)} className="input-field" type="number" placeholder="kg" />
-          <select onChange={(e) => setGender(e.target.value)} className="input-field">
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
-        {error && <span style={{ color: 'red', marginTop: '10px' }} className="small-text">{error}</span>}
-        {success && <span style={{ color: 'green', marginTop: '10px' }} className="small-text">{success}</span>}
-          
+          {error && <span style={{ color: 'red', marginTop: '10px' }} className="small-text">{error}</span>}
+          {success && <span style={{ color: 'green', marginTop: '10px' }} className="small-text">{success}</span>}
         </div>
 
         <button onClick={handleSignUp} className="primary-btn">Sign Up</button>
