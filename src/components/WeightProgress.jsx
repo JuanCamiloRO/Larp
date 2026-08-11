@@ -67,7 +67,7 @@ function WeightChart({ entries, unit }) {
     },
     scales: {
       x: { grid: { display: false }, border: { display: false }, ticks: { color: '#8e8e93', font: { size: 10, weight: '600' }, maxTicksLimit: 4 } },
-      y: { grid: { color: 'rgba(255, 255, 255, 0.07)', drawTicks: false }, border: { display: false }, ticks: { color: '#8e8e93', font: { size: 10, weight: '600' }, maxTicksLimit: 4, callback: (value) => `${value} ${unit}` }, grace: '4%' },
+      y: { grid: { color: 'rgba(255, 255, 255, 0.07)', drawTicks: false }, border: { display: false }, ticks: { color: '#8e8e93', font: { size: 10, weight: '600' }, maxTicksLimit: 4, callback: (value) => `${value.toFixed(2)} ${unit}` }, grace: '4%' },
     },
   }), [unit]);
 

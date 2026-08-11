@@ -1,0 +1,123 @@
+.legal-page {
+  min-height: 100vh;
+  background: #000000;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.legal-page__header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.legal-page__header h1 {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.legal-page__back {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  cursor: pointer;
+}
+
+.legal-page__tabs {
+  display: flex;
+  gap: 8px;
+  padding: 16px 20px 0;
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.legal-page__tab {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #1c1c1e;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.legal-page__tab--active {
+  border-color: rgba(255, 59, 48, 0.4);
+  background: rgba(255, 59, 48, 0.12);
+  color: #ff3b30;
+}
+
+.legal-page__content {
+  flex: 1;
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 20px 20px 80px;
+  box-sizing: border-box;
+}
+
+.legal-page__updated {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.35);
+  margin: 0 0 24px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+}
+
+.legal-page__content h2 {
+  font-size: 22px;
+  font-weight: 900;
+  margin: 0 0 16px;
+}
+
+.legal-page__content h3 {
+  font-size: 15px;
+  font-weight: 800;
+  color: #ff3b30;
+  margin: 28px 0 8px;
+}
+
+.legal-page__content p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
+  margin: 0 0 12px;
+}
+
+.legal-page__content ul {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+
+.legal-page__content li {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
+  margin-bottom: 6px;
+}
+
+.legal-page__content a {
+  color: #ff3b30;
+  text-decoration: underline;
+}

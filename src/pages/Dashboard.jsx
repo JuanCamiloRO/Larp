@@ -9,7 +9,9 @@ import ExerciseDisplay from '../components/ExerciseDisplay';
 import MuscleHeatmap from '../components/MuscleHeatmap';
 import BodyScan from '../components/BodyScan';
 import WeightProgress from '../components/WeightProgress';
-import OnboardingWizard from '../components/OnBoardingWizard';
+import OnboardingSignUp from '../components/OnBoardingSignUp';
+import ViewFollowers from '../components/ViewFollowers';
+import ViewFollowed from '../components/ViewFollowed';
 import '../css/dashboard.css';
 import '../css/weight-progress.css';
 import '../css/social.css';
@@ -22,26 +24,29 @@ function DashboardSkeleton() {
 export default function Dashboard() {
   const [isBodyScanOpen, setIsBodyScanOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowing, setShowFollowing] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { profile, loading: profileLoading, error: profileError } = useProfile(user?.id, refreshKey);
   const { workouts, loading: workoutsLoading, error: workoutsError } = useWorkout(user?.id);
+
+  useEffect(() => {
+    if (!profileLoading && profile && !profile.onboarding_completed) {
+      navigate("/onboarding");
+    }
+  }, [profileLoading, profile, navigate]);
+
   const recentWorkouts = workouts?.slice(0, 3) || [];
   const workoutCount = workouts?.length || 0;
   const preferredUnit = profile?.preferred_units === 'lb' || profile?.preferred_units === 'lbs' ? 'lb' : 'kg';
 
   if (profileLoading) return <DashboardSkeleton />;
   if (profileError) return <main className="public-profile-page dashboard-home page-transition"><div className="dashboard-error"><h1>Couldn’t load your profile</h1><p>{profileError}</p></div></main>;
- 
-  useEffect(() => {
-    if (!loading && profile && !profile.onboarding_completed) {
-      navigate("/onboarding");
-    }
-  }, [loading, profile, navigate]);
   return <main className="public-profile-page dashboard-home page-transition">
     
-    <section className="weight-progress"><div className="public-profile-top"><img className="public-profile-avatar" src={profile?.avatar_url || '/default-avatar.png'} alt={profile?.username || 'Your avatar'} onError={(event) => { event.currentTarget.src = '/default-avatar.png'; }} /><div className="public-profile-stats"><div className="public-profile-stat"><span className="public-profile-stat__number">{workoutsLoading ? '—' : workoutCount}</span><span className="public-profile-stat__label">Workouts</span></div><div className="public-profile-stat"><span className="public-profile-stat__number">{profile?.followers ?? 0}</span><span className="public-profile-stat__label">Followers</span></div><div className="public-profile-stat"><span className="public-profile-stat__number">{profile?.following ?? 0}</span><span className="public-profile-stat__label">Following</span></div></div></div><div className="public-profile-info"><h1 className="public-profile-username">{profile?.username || 'Your profile'}</h1>{profile?.bio && <p className="public-profile-bio">{profile.bio}</p>}</div></section>
-
+    <section className="weight-progress"><div className="public-profile-top"><img className="public-profile-avatar" src={profile?.avatar_url || '/default-avatar.png'} alt={profile?.username || 'Your avatar'} onError={(event) => { event.currentTarget.src = '/default-avatar.png'; }} /><div className="public-profile-stats"><div className="public-profile-stat"><span className="public-profile-stat__number">{workoutsLoading ? '—' : workoutCount}</span><span className="public-profile-stat__label">Workouts</span></div><div className="public-profile-stat"><span className="public-profile-stat__number" onClick={() => setShowFollowers(true)}>{profile?.followers ?? 0}</span><span className="public-profile-stat__label">Followers</span></div><div className="public-profile-stat"><span className="public-profile-stat__number" onClick={()=> setShowFollowing(true)}>{profile?.following ?? 0}</span><span className="public-profile-stat__label">Following</span></div></div></div><div className="public-profile-info"><h1 className="public-profile-username">{profile?.username || 'Your profile'}</h1>{profile?.bio && <p className="public-profile-bio">{profile.bio}</p>}</div></section>
+    {showFollowers && <ViewFollowers onClose={() => setShowFollowers(false)} userId={profile?.id} />}{showFollowing && <ViewFollowed onClose={() => setShowFollowing(false)} userId={profile?.id} />}
     <section className="weight-progress"><header className="weight-progress__header"><p>Muscle Activity</p></header><MuscleHeatmap userId={user?.id} /></section>
     <section className="public-profile-section"><ExerciseDisplay workouts={recentWorkouts} loading={workoutsLoading} error={workoutsError} authorProfile={profile} showAuthor={false} exercisePreviewCount={3} showActions={false} /></section>
     <button type="button" className="body-scan-launcher" onClick={() => setIsBodyScanOpen(true)}><span className="body-scan-launcher__icon" aria-hidden="true"><ScanLine size={23} strokeWidth={2.25} /></span><span className="body-scan-launcher__copy"><span className="body-scan-launcher__title">Body Scan</span><span className="body-scan-launcher__subtitle">Analyze your physique and potential</span></span><ChevronRight className="body-scan-launcher__chevron" size={22} strokeWidth={2.5} aria-hidden="true" /></button>

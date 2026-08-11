@@ -103,11 +103,11 @@ export default function Settings() {
             <button
               type="button"
               className="settings-row"
+              onClick={() => navigate('/privacy-legal')}
             >
               <span className="settings-row__icon"><ShieldCheck size={18} /></span>
               <span className="settings-row__text">
-                <strong>Privacy settings</strong>
-                <small>Comming soon!</small>
+                <strong>Privacy and Legal</strong>
               </span>
               <ChevronRight size={18} />
             </button>

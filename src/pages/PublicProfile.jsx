@@ -206,6 +206,7 @@ export default function PublicProfile() {
           error={workoutsError}
           authorProfile={profile}
           exercisePreviewCount={3}
+          showActions={false}
         />
 
         {workoutCount === 0 && !workoutsLoading && (

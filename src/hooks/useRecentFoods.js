@@ -24,9 +24,6 @@ export function useRecentFoods(userId, refreshKey, mealType = null) {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (mealType) {
-      query = query.eq('meal_type', mealType);
-    }
 
     const { data, error } = await query;
 
@@ -42,7 +39,7 @@ export function useRecentFoods(userId, refreshKey, mealType = null) {
       setRecentFoods(deduped);
     }
     setLoading(false);
-  }, [userId, mealType]);
+  }, [userId]);
 
   useEffect(() => {
     fetchRecent();

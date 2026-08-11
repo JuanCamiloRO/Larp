@@ -7,6 +7,7 @@ export default function SignUp() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [privacyAgreement, setPrivacyAgreement] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -37,31 +38,34 @@ export default function SignUp() {
             setLoading(false)
             return
         }
+
+        if (!privacyAgreement) {
+            setError('You must accept the privacy and legal agreement')
+            setLoading(false)
+            return
+        }
+
       
 
         const { error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: {
-                    username,
-                }
-            }
-        })
+    email,
+    password,
+    options: {
+        data: { username },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+    }
+})
 
         if (error) {
             setError(error.message)
         } else {
             // Limpiar formulario
             setError('')
-            setSuccess('Cuenta creada correctamente.')
+            setSuccess('Check your email to verify your account.')
             setUsername('')
             setEmail('')
             setPassword('')
             setConfirmPassword('')
-            setTimeout(() => {
-                navigate('/onboarding')
-            }, 2000)
         }
         setLoading(false)
     }
@@ -82,15 +86,19 @@ export default function SignUp() {
           <input onChange={(e) => setConfirmPassword(e.target.value)} className="input-field" type="password" placeholder="Confirm password" />
         </div>
 
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: '20px' }}>
+  <input type="checkbox" checked={privacyAgreement} onChange={(e) => setPrivacyAgreement(e.target.checked)} />
+  <span>I accept the <Link to="/privacy-legal" onClick={(e) => e.stopPropagation()} style={{ color: '#ff3b30' }}>Privacy Policy and Terms of Service</Link></span>
+</label>
+        <button onClick={handleSignUp} className="primary-btn">Sign Up</button>
+
         <div className="form-row" style={{ marginBottom: '22px' }}>
           {error && <span style={{ color: 'red', marginTop: '10px' }} className="small-text">{error}</span>}
           {success && <span style={{ color: 'green', marginTop: '10px' }} className="small-text">{success}</span>}
         </div>
 
-        <button onClick={handleSignUp} className="primary-btn">Sign Up</button>
-
         <p className="small-text">
-          Already have an account? <Link to="/login" className="text-link">Log in</Link>
+          Already have an account? <Link to="/login" style={{ color: '#ff3b30' }}>Log in</Link>
         </p>
       </div>
     </div>

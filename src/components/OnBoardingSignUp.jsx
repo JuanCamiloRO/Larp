@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
+import { useAuth } from "../hooks/useAuth";
+import { useProfile } from "../hooks/useProfile";
+import { useNavigate } from "react-router-dom";
 import "../css/style.css";
 
 const EXPERIENCE_LEVELS = [
@@ -23,7 +26,13 @@ const FREQUENCIES = [
   { value: 6, label: "6 days", desc: "Larper" },
 ];
 
-function calculateMaintenanceCalories({ age, weight, height, experience, goal, frequency }) {
+const GENDERS = [
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+  { value: "other", label: "Other / Prefer not to say" },
+];
+
+function calculateMaintenanceCalories({ age, weight, height, gender, experience, goal, frequency }) {
   const parsedAge = Number(age);
   const parsedWeight = Number(weight);
   const parsedHeight = Number(height);
@@ -33,7 +42,11 @@ function calculateMaintenanceCalories({ age, weight, height, experience, goal, f
     return null;
   }
 
-  const baseBmr = 10 * parsedWeight + 6.25 * parsedHeight - 5 * parsedAge + 5;
+  // Mifflin-St Jeor uses a +5 (male) / -161 (female) constant. For "other" /
+  // unspecified we split the difference rather than default to one sex.
+  const genderConstant = { male: 5, female: -161 }[gender] ?? -78;
+
+  const baseBmr = 10 * parsedWeight + 6.25 * parsedHeight - 5 * parsedAge + genderConstant;
   const activityMultiplier = {
     2: 1.2,
     3: 1.375,
@@ -50,19 +63,26 @@ function calculateMaintenanceCalories({ age, weight, height, experience, goal, f
 
   const goalAdjustment = {
     muscle: 200,
-    fatloss: -250,
-    strength: 100,
+    fatloss: -500,
+    strength: 400,
     maintain: 0,
   }[goal] || 0;
 
   return Math.max(1200, Math.round(baseBmr * activityMultiplier * trainingAdjustment + goalAdjustment));
 }
 
-function OnboardingWizard({ userId, onComplete }) {
+function OnBoardingSignUp() {
+  const { user } = useAuth();
+  const { profile, loading: profileLoading } = useProfile(user?.id);
+  const navigate = useNavigate();
+
+  // Hooks must always run, in the same order, on every render —
+  // so all useState calls live above any early return.
   const [step, setStep] = useState(0);
   const [data, setData] = useState({
-    username: "",
+    name: "",
     age: "",
+    gender: "",
     weight: "",
     height: "",
     experience: "",
@@ -71,7 +91,23 @@ function OnboardingWizard({ userId, onComplete }) {
   });
   const [saving, setSaving] = useState(false);
 
-  const totalSteps = 7;
+  // Redirect away from onboarding once we know it's already done, instead
+  // of calling navigate() as a side effect during render.
+  useEffect(() => {
+    if (!profileLoading && profile?.onboarding_completed) {
+      navigate("/");
+    }
+  }, [profileLoading, profile, navigate]);
+
+  if (!user || profileLoading || !profile) {
+    return <div className="onboarding-signup-page">Loading...</div>;
+  }
+
+  if (profile.onboarding_completed) {
+    return null;
+  }
+
+  const totalSteps = 8;
 
   const update = (field, value) => {
     setData((d) => ({ ...d, [field]: value }));
@@ -79,13 +115,14 @@ function OnboardingWizard({ userId, onComplete }) {
 
   const canAdvance = () => {
     switch (step) {
-      case 0: return data.username.trim().length >= 2;
+      case 0: return data.name.trim().length >= 2;
       case 1: return data.age && Number(data.age) >= 13 && Number(data.age) <= 99;
-      case 2: return data.weight && Number(data.weight) >= 30 && Number(data.weight) <= 250;
-      case 3: return data.height && Number(data.height) >= 100 && Number(data.height) <= 250;
-      case 4: return !!data.experience;
-      case 5: return !!data.goal;
-      case 6: return !!data.frequency;
+      case 2: return !!data.gender;
+      case 3: return data.weight && Number(data.weight) >= 30 && Number(data.weight) <= 250;
+      case 4: return data.height && Number(data.height) >= 100 && Number(data.height) <= 250;
+      case 5: return !!data.experience;
+      case 6: return !!data.goal;
+      case 7: return !!data.frequency;
       default: return true;
     }
   };
@@ -100,12 +137,14 @@ function OnboardingWizard({ userId, onComplete }) {
   };
 
   const finish = async () => {
+    if (saving) return; // guard against double-submit (double click/tap)
     setSaving(true);
     try {
       const maintenanceCalories = calculateMaintenanceCalories({
         age: data.age,
         weight: data.weight,
         height: data.height,
+        gender: data.gender,
         experience: data.experience,
         goal: data.goal,
         frequency: data.frequency,
@@ -113,21 +152,25 @@ function OnboardingWizard({ userId, onComplete }) {
 
       const { error } = await supabase
         .from("profiles")
-        .update({
-          username: data.username,
-          age: Number(data.age),
-          weight: Number(data.weight),
-          height: Number(data.height),
-          experience: data.experience,
-          goal: data.goal,
-          frequency: Number(data.frequency),
-          daily_calorie_goal: maintenanceCalories,
-          onboarding_completed: true,
-        })
-        .eq("id", userId);
+        .update(
+          {
+            id: user.id,
+            name: data.name,
+            age: Number(data.age),
+            gender: data.gender,
+            weight: Number(data.weight),
+            height: Number(data.height),
+            experience: data.experience,
+            goal: data.goal,
+            frequency: Number(data.frequency),
+            daily_calorie_goal: maintenanceCalories,
+            onboarding_completed: true,
+          },
+        ).eq("id", user.id);
 
       if (error) throw error;
-      onComplete();
+
+      navigate("/");
     } catch (err) {
       console.error(err);
       alert("Error saving data. Please try again.");
@@ -153,16 +196,6 @@ function OnboardingWizard({ userId, onComplete }) {
     WebkitAppearance: "none",
   };
 
-  const labelStyle = {
-    fontSize: 11,
-    fontWeight: 700,
-    color: "rgba(255,255,255,0.35)",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: 8,
-    display: "block",
-  };
-
   const renderStep = () => {
     switch (step) {
       case 0:
@@ -173,8 +206,8 @@ function OnboardingWizard({ userId, onComplete }) {
             <input
               type="text"
               placeholder="Your name"
-              value={data.username}
-              onChange={(e) => update("username", e.target.value)}
+              value={data.name}
+              onChange={(e) => update("name", e.target.value)}
               style={{ ...inputStyle, textAlign: "left", fontSize: 18 }}
               maxLength={20}
             />
@@ -200,6 +233,34 @@ function OnboardingWizard({ userId, onComplete }) {
       case 2:
         return (
           <>
+            <h2 style={titleStyle}>What's your gender?</h2>
+            <p style={descStyle}>This affects your basal metabolism calculation.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {GENDERS.map((g) => (
+                <button
+                  key={g.value}
+                  onClick={() => update("gender", g.value)}
+                  style={{
+                    padding: "18px 20px",
+                    borderRadius: 14,
+                    border: data.gender === g.value ? "1px solid #d4af37" : "1px solid rgba(255,255,255,0.08)",
+                    background: data.gender === g.value ? "rgba(212,175,55,0.1)" : "rgba(255,255,255,0.03)",
+                    color: "#fff",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span style={{ display: "block", fontSize: 15, fontWeight: 800 }}>{g.label}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        );
+
+      case 3:
+        return (
+          <>
             <h2 style={titleStyle}>How much do you weigh?</h2>
             <p style={descStyle}>We'll use this to calculate your FFMI and track your progress.</p>
             <div style={{ position: "relative" }}>
@@ -216,7 +277,7 @@ function OnboardingWizard({ userId, onComplete }) {
           </>
         );
 
-      case 3:
+      case 4:
         return (
           <>
             <h2 style={titleStyle}>How tall are you?</h2>
@@ -235,7 +296,7 @@ function OnboardingWizard({ userId, onComplete }) {
           </>
         );
 
-      case 4:
+      case 5:
         return (
           <>
             <h2 style={titleStyle}>What's your level?</h2>
@@ -264,7 +325,7 @@ function OnboardingWizard({ userId, onComplete }) {
           </>
         );
 
-      case 5:
+      case 6:
         return (
           <>
             <h2 style={titleStyle}>What's your goal?</h2>
@@ -292,7 +353,7 @@ function OnboardingWizard({ userId, onComplete }) {
           </>
         );
 
-      case 6:
+      case 7:
         return (
           <>
             <h2 style={titleStyle}>How many days a week do you train?</h2>
@@ -463,4 +524,4 @@ const descStyle = {
   lineHeight: 1.4,
 };
 
-export default OnboardingWizard;
+export default OnBoardingSignUp;

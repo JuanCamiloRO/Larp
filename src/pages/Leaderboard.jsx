@@ -1,13 +1,9 @@
-// pages/Leaderboard.jsx
-// Exercise leaderboard ranked by e1RM, with a Friends-only toggle. When
-// enabled, the leaderboard query is scoped to users the current user
-// follows (plus themselves); when disabled, it's the global top list.
-
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useExerciseLeaderboard } from '../hooks/useExerciseLeaderboard';
 import { useFollowedUserIds } from '../hooks/useFollowedUserIds';
+import { ArrowLeft } from 'lucide-react';
 import ExercisePicker from '../components/ExercisePicker';
 import ExerciseRankBadge from '../components/ExerciseRankBadge';
 import { TIERS } from '../lib/rankTiers';
@@ -78,31 +74,28 @@ export default function Leaderboard() {
 }
 
   return (
-    <div style={{ padding: '16px' }}>
-      <button
+    <div >
+      <header className="settings-header">
+      <button className="settings-header__back"
         onClick={() => setSelectedExercise(null)}
-        style={{
-          background: 'none',
-          border: 'none',
-          color: 'var(--accent)',
-          fontWeight: 700,
-          marginBottom: '16px',
-          cursor: 'pointer',
-          padding: 0,
-        }}
       >
-        ‹ Back to search
+        <ArrowLeft size={24} />
       </button>
-
+      <div>
+      <p>Leaderboards</p>
+      <h1>{selectedExercise?.name}</h1>
+      </div>
+      </header>
+      <div style={{ padding: '16px' }}>
       <div className="exercise-header" style={{ marginBottom: '4px' }}>
         {selectedExercise.images?.[0] && (
           <img
             className="exercise-thumb"
             src={resolveImageUrl(selectedExercise.images[0])}
-            alt={selectedExercise.name}
+            alt={selectedExercise.name}            
           />
         )}
-        <h1 style={{ color: 'white', fontSize: '20px', margin: 0 }}>{selectedExercise.name}</h1>
+        <h1 style={{ color: 'white', fontSize: '20px', margin: 0 }}>Current Standings</h1>
       </div>
 
       <p className="subtle" style={{ fontSize: '13px', marginBottom: '16px' }}>
@@ -180,6 +173,7 @@ export default function Leaderboard() {
           })}
         </div>
       )}
+    </div>
     </div>
   );
 }
