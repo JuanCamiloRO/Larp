@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '../supabase';
 
-export function useProfile(userId) {
+export function useProfile(userId, refreshKey = 0) {
   const { user } = useAuth();
   const targetUserId = userId || user?.id;
 
@@ -24,6 +24,7 @@ export function useProfile(userId) {
 
     async function fetchProfile() {
       setLoading(true);
+      setError(null);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -39,7 +40,7 @@ export function useProfile(userId) {
     }
 
     fetchProfile();
-  }, [targetUserId]);
+  }, [targetUserId, refreshKey]);
 
   return { profile, loading, error };
 }

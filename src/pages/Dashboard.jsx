@@ -7,6 +7,7 @@ import ExerciseDisplay from '../components/ExerciseDisplay';
 import MuscleHeatmap from '../components/MuscleHeatmap';
 import BodyScan from '../components/BodyScan';
 import WeightProgress from '../components/WeightProgress';
+import OnboardingWizard from '../components/OnBoardingWizard';
 import '../css/dashboard.css';
 import '../css/weight-progress.css';
 import '../css/social.css';
@@ -18,8 +19,9 @@ function DashboardSkeleton() {
 
 export default function Dashboard() {
   const [isBodyScanOpen, setIsBodyScanOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const { user } = useAuth();
-  const { profile, loading: profileLoading, error: profileError } = useProfile(user?.id);
+  const { profile, loading: profileLoading, error: profileError } = useProfile(user?.id, refreshKey);
   const { workouts, loading: workoutsLoading, error: workoutsError } = useWorkout(user?.id);
   const recentWorkouts = workouts?.slice(0, 3) || [];
   const workoutCount = workouts?.length || 0;
@@ -27,7 +29,15 @@ export default function Dashboard() {
 
   if (profileLoading) return <DashboardSkeleton />;
   if (profileError) return <main className="public-profile-page dashboard-home page-transition"><div className="dashboard-error"><h1>Couldn’t load your profile</h1><p>{profileError}</p></div></main>;
-
+ 
+  if (!profileLoading && profile && !profile.onboarding_completed) {
+    return (
+      <OnboardingWizard
+        userId={user.id}
+        onComplete={() => setRefreshKey((k) => k + 1)}
+      />
+    );
+  }
   return <main className="public-profile-page dashboard-home page-transition">
     
     <section className="weight-progress"><div className="public-profile-top"><img className="public-profile-avatar" src={profile?.avatar_url || '/default-avatar.png'} alt={profile?.username || 'Your avatar'} onError={(event) => { event.currentTarget.src = '/default-avatar.png'; }} /><div className="public-profile-stats"><div className="public-profile-stat"><span className="public-profile-stat__number">{workoutsLoading ? '—' : workoutCount}</span><span className="public-profile-stat__label">Workouts</span></div><div className="public-profile-stat"><span className="public-profile-stat__number">{profile?.followers ?? 0}</span><span className="public-profile-stat__label">Followers</span></div><div className="public-profile-stat"><span className="public-profile-stat__number">{profile?.following ?? 0}</span><span className="public-profile-stat__label">Following</span></div></div></div><div className="public-profile-info"><h1 className="public-profile-username">{profile?.username || 'Your profile'}</h1>{profile?.bio && <p className="public-profile-bio">{profile.bio}</p>}</div></section>
