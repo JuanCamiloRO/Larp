@@ -13,6 +13,7 @@ export default function SignUp() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const navigate = useNavigate(); 
     console.log(username,email,height,weight,gender);
     console.log(password,confirmPassword,error);
     
@@ -70,7 +71,7 @@ export default function SignUp() {
             setGender('')
             setAge('')
             timeout(() => {
-                navigate('/login')
+                navigate('/onboarding')
             }, 2000)
         }
         setLoading(false)

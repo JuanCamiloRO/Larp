@@ -18,6 +18,7 @@ import Settings from './pages/Settings.jsx';
 import SignUp from './pages/SignUp.jsx';
 import Navbar from './components/Navbar.jsx';
 import WorkoutProvider from './context/WorkoutContext.jsx';
+import OnboardingWizard from "./components/OnboardingWizard";
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
       <Route path="/muscle-ranks" element={<ProtectedRoute><RanksComingSoon /></ProtectedRoute>} />
       <Route path="/routines/new" element={<ProtectedRoute><RoutineEditor /></ProtectedRoute>} />
       <Route path="/signup" element={<SignUp />} /> 
+      <Route path="/onboarding" element={<ProtectedRoute><OnboardingWizard /></ProtectedRoute>} />
     </Routes>
     
     </div>

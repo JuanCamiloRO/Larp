@@ -94,6 +94,17 @@ function BodyScan({ onClose }) {
         score_def: final.scoreDef,
         score_total: final.scoreTotal,
       });
+      if (perfil.peso && perfil.altura) {
+        const { data: { user } } = await supabase.auth.getUser();
+        await supabase
+          .from("profiles")
+          .update({
+            weight: Number(perfil.peso),
+            height: Number(perfil.altura),
+            // opcional: updated_at: new Date().toISOString()
+          })
+          .eq("id", user.id);
+      }
     } catch (err) {
       console.error(err);
       alert("Error al analizar. Intenta con otra foto.");
