@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Compass, Dumbbell, ListPlus, Plus, Trash, X } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useAuth } from '../hooks/useAuth';
+import { usePrograms } from '../hooks/usePrograms';
 import { useWorkoutContext } from '../context/WorkoutContext';
 import ExercisePicker from '../components/ExercisePicker';
 import ExerciseRankBadge from '../components/ExerciseRankBadge';
 import PRToast from '../components/PRToast';
 import WorkoutSummary from '../components/WorkoutSummary';
+import WorkoutTimer from "../components/WorkoutTimer";
 import RestTimer from '../components/RestTimer';
 import SessionMuscleMap from '../components/SessionMuscleMap';
 import '../css/workout.css';
@@ -24,10 +26,11 @@ const createSetFromPrevious = (previousSet) => ({
 export default function Workout() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { workoutId, setWorkoutId, name, setName, startedAt, setStartedAt, endedAt, setEndedAt, exercises, setExercises, resetWorkout } = useWorkoutContext();
+  const { workoutId, setWorkoutId, name, setName, startedAt, setStartedAt, endedAt, setEndedAt, exercises, setExercises, resetWorkout, restTimer, setRestTimer, startRestTimer } = useWorkoutContext();
   const [showPicker, setShowPicker] = useState(false);
   const [showWorkoutMenu, setShowWorkoutMenu] = useState(false);
   const [routines, setRoutines] = useState([]);
+  const {programs, loading: programsLoading, error: programsError} = usePrograms(user?.id);
   const [routinesLoading, setRoutinesLoading] = useState(false);
   const [startingRoutineId, setStartingRoutineId] = useState(null);
   const [routineError, setRoutineError] = useState('');
@@ -35,11 +38,7 @@ export default function Workout() {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [toast, setToast] = useState(null);
   const [summary, setSummary] = useState(null);
-  const [restTimer, setRestTimer] = useState({
-  visible: false,
-  startSignal: 0,
-  exerciseId: null
-});
+  
 
   useEffect(() => { if (!toast) return undefined; const timer = setTimeout(() => setToast(null), 2500); return () => clearTimeout(timer); }, [toast]);
   const imageUrl = (image) => image.startsWith('http') ? image : `${IMAGE_BASE_URL}${image}`;
@@ -92,7 +91,22 @@ export default function Workout() {
     if (!items.length) return setRoutineError('This routine has no exercises yet.');
     setStartingRoutineId(routine.id); setRoutineError('');
     try {
-      const nextExercises = await Promise.all(items.map(async (item) => ({ ...item.exercises, previousSets: await getPreviousSetsForExercise(item.exercises.id), sets: Array.from({ length: item.default_sets }, () => ({ ...EMPTY_SET })) })));
+      const nextExercises = await Promise.all(
+  items.map(async (item) => {
+    const previousSets = await getPreviousSetsForExercise(
+      item.exercises.id
+    );
+
+    return {
+      ...item.exercises,
+      previousSets,
+      sets: Array.from(
+        { length: item.default_sets },
+        (_, index) => createSetFromPrevious(previousSets[index + 1])
+      ),
+    };
+  })
+);
       resetWorkout(); setName(routine.name); setStartedAt(new Date()); setExercises(nextExercises); setShowWorkoutMenu(false);
     } catch (error) { console.error('Start routine:', error); setRoutineError('Could not start this routine.'); }
     finally { setStartingRoutineId(null); }
@@ -103,20 +117,27 @@ export default function Workout() {
     if (ids.length) { const { error } = await supabase.from('workout_sets').delete().in('id', ids); if (error) return console.error(error); }
     setExercises((current) => current.filter((_, itemIndex) => itemIndex !== index));
   }
-  function addSet(index) { patchExercise(index, (item) => ({ ...item, sets: [...item.sets, { ...EMPTY_SET }] })); }
+  function addSet(index) {
+  patchExercise(index, (exercise) => {
+    const nextSetNumber = exercise.sets.length + 1;
+    const previousSet = exercise.previousSets?.[nextSetNumber];
+
+    return {
+      ...exercise,
+      sets: [
+        ...exercise.sets,
+        createSetFromPrevious(previousSet),
+      ],
+    };
+  });
+}
   async function deleteSet(exerciseIndex, setIndex) {
     const set = exercises[exerciseIndex].sets[setIndex];
     if (set.dbId) { const { error } = await supabase.from('workout_sets').delete().eq('id', set.dbId); if (error) return console.error(error); }
     patchExercise(exerciseIndex, (item) => ({ ...item, sets: item.sets.filter((_, index) => index !== setIndex) }));
   }
 
-function startRestTimer(exerciseId) {
-  setRestTimer({
-    visible: true,
-    startSignal: Date.now(),
-    exerciseId,
-  });
-}
+
 
   function updateSet(exerciseIndex, setIndex, field, value) { patchExercise(exerciseIndex, (item) => ({ ...item, sets: item.sets.map((set, index) => index === setIndex ? { ...set, [field]: value } : set) })); }
 
@@ -178,21 +199,132 @@ function startRestTimer(exerciseId) {
 
   if (authLoading || !user) return <div className="workout-loading">Loading...</div>;
   return <main className="workout-page"><div className="workout-page__content">
-    <header className="workout-page__header"><h1 className="workout-page__title">Workout</h1><button className="workout-new-button" onClick={openRoutines}><ListPlus size={18} /> Routines</button></header>
+    <header className="workout-page__header"><div className="workout-page__heading"><h1 className="workout-page__title">Workout</h1>{startedAt && <WorkoutTimer startedAt={startedAt} />}</div><button className="workout-new-button" onClick={openRoutines}><ListPlus size={18} /> Routines</button></header>
     <PRToast toast={toast} />
     {exercises.length === 0 ? <section className="workout-empty-state"><Dumbbell size={34} /><h2>Ready to train?</h2><p>Start an empty workout or choose a saved routine.</p><button className="workout-empty-state__button" onClick={startEmptyWorkout}><Plus size={18} /> Add exercise</button></section> : <>
       <SessionMuscleMap exercises={exercises} />
       
-      <section className="workout-exercises">{exercises.map((exercise, exerciseIndex) => <article className="workout-card" key={exercise.id}><header className="workout-card__header"><div className="workout-card__exercise-info">{exercise.images?.[0] && <img className="workout-card__thumbnail" src={imageUrl(exercise.images[0])} alt={exercise.name} />}<span className="workout-card__exercise-name">{exercise.name}</span><ExerciseRankBadge exerciseId={exercise.id} userId={user.id} /><button className="icon-button icon-button--delete" onClick={() => removeExercise(exerciseIndex)}><Trash size={16} /></button>{restTimer.visible && restTimer.exerciseId === exercise.id && (
-  <RestTimer startSignal={restTimer.startSignal} />
-)}</div></header><div className="set-table"><div className="set-table__header"><span>Set</span><span>Previous</span><span>Weight</span><span>Reps</span><span /><span /><span /></div>{exercise.sets.map((set, setIndex) => { const previous = exercise.previousSets?.[setIndex + 1]; return <div className={`set-row ${set.done ? 'set-row--completed' : ''}`} key={set.dbId ?? `local-${setIndex}`}><span className="set-row__number">{setIndex + 1}</span><span className={`set-row__previous ${previous ? '' : 'set-row__previous--empty'}`}>{previous ? `${previous.weight} × ${previous.reps}` : '—'}</span><input className="set-row__input" type="number" step="0.5" placeholder={previous ? previous.weight : 'weight'} value={set.weight} disabled={set.done} onChange={(event) => updateSet(exerciseIndex, setIndex, 'weight', event.target.value)} /><input className="set-row__input" type="number" step="1" placeholder={previous ? previous.reps : 'reps'} value={set.reps} disabled={set.done} onChange={(event) => updateSet(exerciseIndex, setIndex, 'reps', event.target.value)} /><span className="set-row__pr-icon">{set.isPR ? '🥇' : ''}</span><button className={`set-row__check-button ${set.done ? 'set-row__check-button--active' : ''}`} onClick={() => toggleSetDone(exerciseIndex, setIndex)} disabled={set.saving}>{set.saving ? '…' : '✓'}</button><button className="set-row__delete-button" onClick={() => deleteSet(exerciseIndex, setIndex)}>✕</button></div>; })}</div><button className="add-set-button" onClick={() => addSet(exerciseIndex)}>+ Add Set</button></article>)}</section>
-      <button className="add-exercise-button" onClick={() => setShowPicker(true)}>+ Add Exercise</button><div className="workout-actions"><button className="finish-workout-button" onClick={() => { setEndedAt(new Date()); setFinished(true); }}>Finish Workout</button><button className="delete-workout-button" onClick={() => setConfirmingDelete(true)}>Delete</button></div>
+      <section className="workout-exercises">{exercises.map((exercise, exerciseIndex) => <article className="workout-card" key={exercise.id}><header className="workout-card__header"><div className="workout-card__exercise-info">{exercise.images?.[0] && <img className="workout-card__thumbnail" src={imageUrl(exercise.images[0])} alt={exercise.name} />}<span className="workout-card__exercise-name">{exercise.name}</span><ExerciseRankBadge exerciseId={exercise.id} userId={user.id} /><button className="icon-button icon-button--delete" onClick={() => removeExercise(exerciseIndex)}><Trash size={16} /></button>{restTimer.startedAt &&
+      restTimer.exerciseId === exercise.id && (
+        <RestTimer startedAt={restTimer.startedAt} />
+      )}</div></header><div className="set-table"><div className="set-table__header"><span>Set</span><span>Previous</span><span>Weight</span><span>Reps</span><span /><span /><span /></div>{exercise.sets.map((set, setIndex) => { const previous = exercise.previousSets?.[setIndex + 1]; return <div className={`set-row ${set.done ? 'set-row--completed' : ''}`} key={set.dbId ?? `local-${setIndex}`}><span className="set-row__number">{setIndex + 1}</span><span className={`set-row__previous ${previous ? '' : 'set-row__previous--empty'}`}>{previous ? `${previous.weight} × ${previous.reps}` : '—'}</span><input className="set-row__input" type="number" step="0.5" placeholder={previous ? previous.weight : 'weight'} value={set.weight} disabled={set.done} onChange={(event) => updateSet(exerciseIndex, setIndex, 'weight', event.target.value)} /><input className="set-row__input" type="number" step="1" placeholder={previous ? previous.reps : 'reps'} value={set.reps} disabled={set.done} onChange={(event) => updateSet(exerciseIndex, setIndex, 'reps', event.target.value)} /><span className="set-row__pr-icon">{set.isPR ? '🥇' : ''}</span><button className={`set-row__check-button ${set.done ? 'set-row__check-button--active' : ''}`} onClick={() => toggleSetDone(exerciseIndex, setIndex)} disabled={set.saving}>{set.saving ? '…' : '✓'}</button><button className="set-row__delete-button" onClick={() => deleteSet(exerciseIndex, setIndex)}>✕</button></div>; })}</div><button className="add-set-button" onClick={() => addSet(exerciseIndex)}>+ Add Set</button></article>)}</section>
+      <button className="add-exercise-button" onClick={() => setShowPicker(true)}>+ Add Exercise</button><div className="workout-actions"><button className="finish-workout-button" onClick={() => { setEndedAt(new Date()); setFinished(true); }}>Finish Workout</button><button className="delete-workout-button" onClick={() => setConfirmingDelete(true)}>Discard</button></div>
     </>}
     <div className="workout-bottom-spacer" />
     {showPicker && <ExercisePicker onSelect={addExercise} onClose={() => setShowPicker(false)} />}
-    {showWorkoutMenu && <div className="confirmation-overlay" onMouseDown={() => setShowWorkoutMenu(false)}><section className="workout-picker-dialog" role="dialog" onMouseDown={(event) => event.stopPropagation()}><header className="workout-picker-dialog__header"><div><p>Routines</p><h2>Your training plans</h2></div><button className="icon-button" onClick={() => setShowWorkoutMenu(false)}><X size={20} /></button></header><button className="workout-choice-card" onClick={() => { setShowWorkoutMenu(false); navigate('/routines/new'); }}><ListPlus size={21} /><span><strong>Create routine</strong><small>Build a repeatable workout</small></span></button><button className="workout-choice-card"   onClick={() => { setShowWorkoutMenu(false); navigate('/routines'); }}><Compass size={21} /><span><strong>Explore routines</strong><small>Discover public routines soon</small></span></button><div className="workout-picker-dialog__routines-header"><span>Saved routines</span><span>{routines.length}</span></div>{routinesLoading && <p className="workout-picker-dialog__status">Loading routines…</p>}{routineError && <p className="workout-picker-dialog__error">{routineError}</p>}{!routinesLoading && !routineError && !routines.length && <p className="workout-picker-dialog__status">No saved routines yet. Create your first one above.</p>}<div className="workout-picker-dialog__routine-list">{routines.map((routine) => { const count = routine.routine_exercises?.length || 0; const sets = routine.routine_exercises?.reduce((sum, item) => sum + item.default_sets, 0) || 0; return <button className="saved-routine-card" key={routine.id} onClick={() => startRoutine(routine)} disabled={startingRoutineId !== null}><span><strong>{routine.name}</strong><small>{count} exercises · {sets} sets</small></span><span className="saved-routine-card__start">{startingRoutineId === routine.id ? 'Starting…' : 'Start'}</span></button>; })}</div></section></div>}
-    {finished && <div className="confirmation-overlay"><div className="confirmation-dialog"><p className="confirmation-dialog__text">Are you sure you want to finish the workout?</p><input className="confirmation-dialog__input" placeholder="Enter workout name" value={name} onChange={(event) => setName(event.target.value)} /><div className="confirmation-dialog__actions"><button className="confirmation-dialog__button confirmation-dialog__button--primary" onClick={() => { finishWorkout(); setFinished(false); }}>Finish workout</button><button className="confirmation-dialog__button" onClick={() => setFinished(false)}>Cancel</button></div></div></div>}
-    {confirmingDelete && <div className="confirmation-overlay"><div className="confirmation-dialog"><p className="confirmation-dialog__text">Delete this entire workout? This cannot be undone.</p><div className="confirmation-dialog__actions"><button className="confirmation-dialog__button confirmation-dialog__button--danger" onClick={deleteWorkout}>Yes, delete</button><button className="confirmation-dialog__button" onClick={() => setConfirmingDelete(false)}>Cancel</button></div></div></div>}
+    {showWorkoutMenu && (
+  <div
+    className="confirmation-overlay"
+    onMouseDown={() => setShowWorkoutMenu(false)}
+  >
+    <section
+      className="workout-picker-dialog"
+      role="dialog"
+      onMouseDown={(event) => event.stopPropagation()}
+    >
+      <header className="workout-picker-dialog__header">
+        <div>
+          <p>Routines</p>
+          <h2>Your training plans</h2>
+        </div>
+
+        <button
+          className="icon-button"
+          onClick={() => setShowWorkoutMenu(false)}
+        >
+          <X size={20} />
+        </button>
+      </header>
+
+      <button
+        className="workout-choice-card"
+        onClick={() => {
+          setShowWorkoutMenu(false);
+          navigate("/routines/new");
+        }}
+      >
+        <ListPlus size={21} />
+
+        <span>
+          <strong>Create routine</strong>
+          <small>Build a repeatable workout</small>
+        </span>
+      </button>
+
+      <button
+        className="workout-choice-card"
+        onClick={() => {
+          setShowWorkoutMenu(false);
+          navigate("/routines");
+        }}
+      >
+        <Compass size={21} />
+
+        <span>
+          <strong>Explore routines</strong>
+          <small>Discover public routines soon</small>
+        </span>
+      </button>
+
+      <div className="workout-picker-dialog__routines-header">
+        <span>Saved routines</span>
+        <span>{routines.length}</span>
+      </div>
+
+      {routinesLoading && (
+        <p className="workout-picker-dialog__status">
+          Loading routines…
+        </p>
+      )}
+
+      {routineError && (
+        <p className="workout-picker-dialog__error">
+          {routineError}
+        </p>
+      )}
+
+      {!routinesLoading && !routineError && !routines.length && (
+        <p className="workout-picker-dialog__status">
+          No saved routines yet. Create your first one above.
+        </p>
+      )}
+
+      <div className="workout-picker-dialog__routine-list">
+        {routines.map((routine) => {
+          const exerciseCount = routine.routine_exercises?.length || 0;
+
+          const setCount =
+            routine.routine_exercises?.reduce(
+              (total, item) => total + item.default_sets,
+              0
+            ) || 0;
+
+          return (
+            <button
+              className="saved-routine-card"
+              key={routine.id}
+              onClick={() => startRoutine(routine)}
+              disabled={startingRoutineId !== null}
+            >
+              <span>
+                <strong>{routine.name}</strong>
+                <small>
+                  {exerciseCount} exercises · {setCount} sets
+                </small>
+              </span>
+
+              <span className="saved-routine-card__start">
+                {startingRoutineId === routine.id
+                  ? "Starting…"
+                  : "Start"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  </div>
+)}
     <WorkoutSummary summary={summary} onClose={() => setSummary(null)} />
   </div></main>;
 }

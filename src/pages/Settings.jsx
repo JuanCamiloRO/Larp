@@ -6,6 +6,8 @@ import {
   LogOut,
   ShieldCheck,
   UserRound,
+  Trash,
+  Contact,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
@@ -18,6 +20,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [error, setError] = useState('');
 
   async function handleLogout() {
@@ -40,6 +43,32 @@ export default function Settings() {
 
     navigate('/login', { replace: true });
   }
+
+  async function handleDeleteAccount() {
+  if (deletingAccount) return;
+
+  const confirmed = window.confirm(
+    'Are you sure you want to permanently delete your account?'
+  );
+  if (!confirmed) return;
+
+  setDeletingAccount(true);
+  setError('');
+
+  const { error: invokeError } = await supabase.functions.invoke(
+    'delete-account'
+  );
+
+  if (invokeError) {
+    console.error('Failed to delete account:', invokeError);
+    setError('Could not delete your account. Please try again.');
+    setDeletingAccount(false);
+    return;
+  }
+
+  await supabase.auth.signOut();
+  navigate('/login', { replace: true });
+}
 
   return (
     <main className="settings-page">
@@ -123,6 +152,16 @@ export default function Settings() {
           <LogOut size={18} />
           {loggingOut ? 'Logging out…' : 'Log out'}
         </button>
+
+        {/*<button
+          type="button"
+          className="settings-logout"
+          onClick={handleDeleteAccount}
+          disabled={deletingAccount}
+        >
+          <Contact size={18} />
+          {deletingAccount ? 'Deleting account...' : 'Delete account'}
+        </button>}*/}
 
         {error && (
           <p className="settings-error" role="alert">

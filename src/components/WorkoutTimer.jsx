@@ -1,16 +1,22 @@
-// components/RestTimer.jsx
+// components/WorkoutTimer.jsx
 import { useEffect, useState } from "react";
-import { Clock } from "lucide-react";
-import "../css/rest-timer.css";
+import "../css/workout-timer.css";
 
 function formatTime(totalSeconds) {
-  const minutes = Math.floor(totalSeconds / 60);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(
+      seconds
+    ).padStart(2, "0")}`;
+  }
 
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-export default function RestTimer({ startedAt }) {
+export default function WorkoutTimer({ startedAt }) {
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -24,8 +30,6 @@ export default function RestTimer({ startedAt }) {
 
     const interval = window.setInterval(updateClock, 1000);
 
-    // Immediately correct the visual time after returning from Spotify,
-    // another browser tab, or a locked screen.
     document.addEventListener("visibilitychange", updateClock);
     window.addEventListener("focus", updateClock);
 
@@ -36,23 +40,16 @@ export default function RestTimer({ startedAt }) {
     };
   }, [startedAt]);
 
+  const startedAtMilliseconds = new Date(startedAt).getTime();
+
   const elapsedSeconds = Math.max(
     0,
-    Math.floor((now - startedAt) / 1000)
+    Math.floor((now - startedAtMilliseconds) / 1000)
   );
 
   return (
-    <>
-    <div style={{ display: "column", alignItems: "center",justifyContent: "center", gap: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-      <Clock size={18} className="rest-chronometer__icon" />
-      <span className="rest-chronometer__label">Rest</span>
-    </div>
-    
-    <span className="rest-chronometer__time">
-        {formatTime(elapsedSeconds)}
-      </span>
-      </div>
-      </>
+    <span className="workout-chronometer">
+      {formatTime(elapsedSeconds)}
+    </span>
   );
 }

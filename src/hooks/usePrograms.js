@@ -48,6 +48,34 @@ export function usePrograms(userId, refreshKey = 0) {
   return { programs, loading, error, reload: load };
 }
 
+export async function fetchProgramById(programId) {
+  const { data, error } = await supabase
+    .from("programs")
+    .select(`
+      id, user_id, name, description, is_public, created_at,
+      program_routines (
+        id, day_label, position,
+        routines ( id, name, is_public, routine_exercises ( id, default_sets ) )
+      )
+    `)
+    .eq("id", programId)
+    .single();
+
+  if (error) {
+    console.error("Failed to load program:", error);
+    return { program: null, error: "Could not load this program." };
+  }
+
+  const withSortedRoutines = {
+    ...data,
+    program_routines: [...(data.program_routines || [])].sort(
+      (a, b) => a.position - b.position
+    ),
+  };
+
+  return { program: withSortedRoutines, error: "" };
+}
+
 export async function fetchPublicPrograms() {
   const { data, error } = await supabase
     .from("programs")

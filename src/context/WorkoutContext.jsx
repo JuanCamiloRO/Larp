@@ -9,6 +9,24 @@ export default function WorkoutProvider({ children }) {
   const [startedAt, setStartedAt] = useState(null);
   const [endedAt, setEndedAt] = useState(null);
   const [exercises, setExercises] = useState([]);
+  const [restTimer, setRestTimer] = useState({
+  startedAt: null,
+  exerciseId: null,
+});
+
+function startRestTimer(exerciseId) {
+  setRestTimer({
+    startedAt: Date.now(),
+    exerciseId,
+  });
+}
+
+function clearRestTimer() {
+  setRestTimer({
+    startedAt: null,
+    exerciseId: null,
+  });
+}
 
   function resetWorkout() {
     setWorkoutId(null);
@@ -16,6 +34,10 @@ export default function WorkoutProvider({ children }) {
     setStartedAt(null);
     setEndedAt(null);
     setExercises([]);
+    setRestTimer({
+    startedAt: null,
+    exerciseId: null,
+  });
   }
 
   const value = {
@@ -26,6 +48,8 @@ export default function WorkoutProvider({ children }) {
     exercises, setExercises,
     resetWorkout,
     isActive: !!workoutId || exercises.length > 0,
+    restTimer,
+     startRestTimer,
   };
 
   return (

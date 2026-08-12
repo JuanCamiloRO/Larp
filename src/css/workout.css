@@ -75,7 +75,7 @@
 
 .workout-actions { display: flex; gap: 10px; margin-top: 16px; }
 .finish-workout-button, .delete-workout-button { min-height: 46px; border: 0; border-radius: 10px; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
-.finish-workout-button { flex: 1; background: #30d158; color: #071b0d; }
+.finish-workout-button { flex: 1; background: #e6452c; color: #fff; }
 .delete-workout-button { padding: 0 18px; background: #3a2020; color: #ff6961; }
 
 .workout-empty-state { display: grid; justify-items: center; gap: 12px; min-height: 280px; padding: 50px 24px;  border-radius: 20px; color: #a8abb4; text-align: center; }

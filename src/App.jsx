@@ -20,6 +20,7 @@ import SignUp from './pages/SignUp.jsx';
 import Navbar from './components/Navbar.jsx';
 import WorkoutProvider from './context/WorkoutContext.jsx';
 import OnBoardingSignUp from "./components/OnBoardingSignUp.jsx";
+import ProgramEditor from "./components/ProgramEditor.jsx";
 import AuthCallback from "./components/AuthCallback.jsx";
 
 export default function App() {
@@ -40,6 +41,8 @@ export default function App() {
       <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
       <Route path="/login" element={<Login />} />
       <Route path="/nutrition" element={<ProtectedRoute><Nutrition /></ProtectedRoute>} />
+      <Route path="/programs" element={<ProtectedRoute><ProgramEditor /></ProtectedRoute>} />
+      <Route path="/programs/:programId" element={<ProtectedRoute><ProgramEditor /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/ranks" element={<ProtectedRoute><MuscleRanks /></ProtectedRoute>} />
       <Route path="/muscle-ranks" element={<ProtectedRoute><RanksComingSoon /></ProtectedRoute>} />

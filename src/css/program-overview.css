@@ -1,0 +1,62 @@
+.program-overview__status {
+  padding: 40px 24px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+}
+
+.program-overview__meta {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.program-overview__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.program-overview__badge--public {
+  background: rgba(255, 59, 48, 0.12);
+  border-color: rgba(255, 59, 48, 0.35);
+  color: #ff3b30;
+}
+
+.program-overview__description {
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0 0 24px;
+}
+
+.program-overview__day-label {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #ff3b30;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.program-overview__start-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #ff3b30, #c9291f);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
