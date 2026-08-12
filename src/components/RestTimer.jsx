@@ -42,17 +42,14 @@ export default function RestTimer({ startedAt }) {
   );
 
   return (
-    <>
-    <div style={{ display: "column", alignItems: "center",justifyContent: "center", gap: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-      <Clock size={18} className="rest-chronometer__icon" />
-      <span className="rest-chronometer__label">Rest</span>
-    </div>
-    
-    <span className="rest-chronometer__time">
+    <div className="rest-chronometer">
+      <div className="rest-chronometer__row">
+        <Clock size={12} className="rest-chronometer__icon" />
+        <span className="rest-chronometer__label">Rest</span>
+      </div>
+      <span className="rest-chronometer__time">
         {formatTime(elapsedSeconds)}
       </span>
-      </div>
-      </>
+    </div>
   );
 }

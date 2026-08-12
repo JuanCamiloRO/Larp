@@ -12,6 +12,7 @@
 
 .workout-page__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
 .workout-page__header .workout-page__title { margin: 0; }
+.workout-page__header .workout-chronometer { flex-shrink: 0; }
 .workout-new-button,
 .workout-empty-state__button {
   display: inline-flex;

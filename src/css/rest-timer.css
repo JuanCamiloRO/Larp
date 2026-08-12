@@ -1,26 +1,35 @@
 .rest-chronometer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   margin-left: auto;
-  color: rgba(255, 255, 255, 0.42);
-  font-size: 13px;
-  font-weight: 750;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.4px;
-  line-height: 1;
+  flex-shrink: 0;
+}
+
+.rest-chronometer__row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rest-chronometer__icon {
+  color: #636366;
 }
 
 .rest-chronometer__label {
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.9px;
+  color: #8e8e93;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .rest-chronometer__time {
-  margin-top: 2px;
-  color: #ff756e;
-  font-size: 16px;
-  font-weight: 900;
+  color: #b0b0b5;
+  font-size: 12px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }

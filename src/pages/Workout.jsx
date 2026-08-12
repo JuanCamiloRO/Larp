@@ -198,8 +198,16 @@ export default function Workout() {
   }
 
   if (authLoading || !user) return <div className="workout-loading">Loading...</div>;
+  const workoutStarted = Boolean(workoutId);
   return <main className="workout-page"><div className="workout-page__content">
-    <header className="workout-page__header"><div className="workout-page__heading"><h1 className="workout-page__title">Workout</h1>{startedAt && <WorkoutTimer startedAt={startedAt} />}</div><button className="workout-new-button" onClick={openRoutines}><ListPlus size={18} /> Routines</button></header>
+    <header className="workout-page__header">
+      <h1 className="workout-page__title">Workout</h1>
+      {workoutStarted && startedAt ? (
+        <WorkoutTimer startedAt={startedAt} />
+      ) : (
+        <button className="workout-new-button" onClick={openRoutines}><ListPlus size={18} /> Routines</button>
+      )}
+    </header>
     <PRToast toast={toast} />
     {exercises.length === 0 ? <section className="workout-empty-state"><Dumbbell size={34} /><h2>Ready to train?</h2><p>Start an empty workout or choose a saved routine.</p><button className="workout-empty-state__button" onClick={startEmptyWorkout}><Plus size={18} /> Add exercise</button></section> : <>
       <SessionMuscleMap exercises={exercises} />
@@ -325,6 +333,8 @@ export default function Workout() {
     </section>
   </div>
 )}
+    {finished && <div className="confirmation-overlay"><div className="confirmation-dialog"><p className="confirmation-dialog__text">Are you sure you want to finish the workout?</p><input className="confirmation-dialog__input" placeholder="Enter workout name" value={name} onChange={(event) => setName(event.target.value)} /><div className="confirmation-dialog__actions"><button className="confirmation-dialog__button confirmation-dialog__button--primary" onClick={() => { finishWorkout(); setFinished(false); }}>Finish workout</button><button className="confirmation-dialog__button" onClick={() => setFinished(false)}>Cancel</button></div></div></div>}
+    {confirmingDelete && <div className="confirmation-overlay"><div className="confirmation-dialog"><p className="confirmation-dialog__text">Delete this entire workout? This cannot be undone.</p><div className="confirmation-dialog__actions"><button className="confirmation-dialog__button confirmation-dialog__button--danger" onClick={deleteWorkout}>Yes, delete</button><button className="confirmation-dialog__button" onClick={() => setConfirmingDelete(false)}>Cancel</button></div></div></div>}
     <WorkoutSummary summary={summary} onClose={() => setSummary(null)} />
   </div></main>;
 }
