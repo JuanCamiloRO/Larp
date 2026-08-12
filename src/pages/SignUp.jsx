@@ -1,113 +1,223 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
-import { supabase } from '../supabase';
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { supabase } from "../supabase";
 
 export default function SignUp() {
-    const [email, setEmail] = useState('');
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [privacyAgreement, setPrivacyAgreement] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [privacyAgreement, setPrivacyAgreement] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-    const handleSignUp = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
+  const navigate = useNavigate();
 
-        if (!email || !password || !username) {
-            setError('Please, fill all the fields');
-            setLoading(false);
-            return;
-        }
-        if (!email.includes('@')) {
-            setError('Email in wrong format');
-            setLoading(false);
-            return;
-        }
-        if (password.length < 8) {
-            setError('Password must have at least 8 digits');
-            setLoading(false);
-            return;
-        }
-        if (password !== confirmPassword) {
-            setError("Passwords don't match");
-            setLoading(false);
-            return;
-        }
-        if (!privacyAgreement) {
-            setError('You must accept the privacy and legal agreement');
-            setLoading(false);
-            return;
-        }
+  async function handleSignUp(event) {
+    event.preventDefault();
 
-        // 1. Crear usuario
-        // 1. Crear usuario
-        const { data: authData, error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
+    if (loading) return;
+
+    setError("");
+
+    const trimmedEmail = email.trim();
+    const trimmedUsername = username.trim();
+
+    if (!trimmedEmail || !password || !trimmedUsername) {
+      setError("Please fill in all fields.");
+      return;
+    }
+
+    if (!trimmedEmail.includes("@")) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (trimmedUsername.length < 2) {
+      setError("Username must have at least 2 characters.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must have at least 8 characters.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
+
+    if (!privacyAgreement) {
+      setError("You must accept the Privacy Policy and Terms of Service.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data: authData, error: signUpError } =
+        await supabase.auth.signUp({
+          email: trimmedEmail,
+          password,
         });
 
-        if (signUpError) {
-            setError(signUpError.message || 'Sign up failed');
-            setError(signUpError.message || 'Sign up failed');
-            setLoading(false);
-            return;
-        }
+      if (signUpError) {
+        throw signUpError;
+      }
 
-        // 2. Crear fila vacía en profiles (así el onboarding puede cargarla)
-        // 2. Crear fila vacía en profiles (así el onboarding puede cargarla)
-        if (authData?.user) {
-            await supabase.from('profiles').upsert({
-                id: authData.user.id,
-                username: username,
-                onboarding_completed: false,
-            }, { onConflict: 'id' });
-        }
+      if (!authData.user) {
+        throw new Error("Could not create your account. Please try again.");
+      }
 
-        // 3. Ir al onboarding
-        navigate('/onboarding', { replace: true });
-        // 3. Ir al onboarding
-        navigate('/onboarding', { replace: true });
-        setLoading(false);
-    };
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            id: authData.user.id,
+            username: trimmedUsername,
+            onboarding_completed: false,
+          },
+          {
+            onConflict: "id",
+          }
+        );
 
-    return (
-        <div className="screen">
-            <div className="panel">
-                <div className="panel-header">
-                    <span className="brand">Larp</span>
-                    <Link to="/" className="icon-btn">←</Link>
-                </div>
-                <h1 className="page-title">Welcome</h1>
-                <p className="subtle">Sign in to continue with your account and keep your profile updated.</p>
+      if (profileError) {
+        throw profileError;
+      }
 
-                <div className="form-grid">
-                    <input onChange={(e) => setUsername(e.target.value)} value={username} className="input-field" type="text" placeholder="Username" />
-                    <input onChange={(e) => setEmail(e.target.value)} value={email} className="input-field" type="email" placeholder="Email" />
-                    <input onChange={(e) => setPassword(e.target.value)} value={password} className="input-field" type="password" placeholder="Password" />
-                    <input onChange={(e) => setConfirmPassword(e.target.value)} value={confirmPassword} className="input-field" type="password" placeholder="Confirm password" />
-                </div>
+      navigate("/onboarding", { replace: true });
+    } catch (error) {
+      console.error("Sign up error:", error);
 
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: '20px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={privacyAgreement} onChange={(e) => setPrivacyAgreement(e.target.checked)} />
-                    <span>I accept the <Link to="/privacy-legal" onClick={(e) => e.stopPropagation()} style={{ color: '#ff3b30' }}>Privacy Policy and Terms of Service</Link></span>
-                </label>
+      setError(
+        error.message || "Could not create your account. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
-                <button type="button" onClick={handleSignUp} disabled={loading} className="primary-btn">
-                    {loading ? 'Creating...' : 'Sign Up'}
-                </button>
+  return (
+    <div className="screen">
+      <div className="panel">
+        <div className="panel-header">
+          <span className="brand">Larp</span>
 
-                {error && <p style={{ color: '#ef4444', marginTop: 12, fontSize: 14 }}>{error}</p>}
-                {error && <p style={{ color: '#ef4444', marginTop: 12, fontSize: 14 }}>{error}</p>}
-
-                <p className="small-text" style={{ marginTop: 16 }}>
-                <p className="small-text" style={{ marginTop: 16 }}>
-                    Already have an account? <Link to="/login" style={{ color: '#ff3b30' }}>Log in</Link>
-                </p>
-            </div>
+          <Link
+            to="/"
+            className="icon-btn"
+            aria-label="Go back to home"
+          >
+            ←
+          </Link>
         </div>
-    );
+
+        <h1 className="page-title">Create account</h1>
+
+        <p className="subtle">
+          Create your account, complete your profile, and start tracking your
+          progress.
+        </p>
+
+        <form onSubmit={handleSignUp}>
+          <div className="form-grid">
+            <input
+              className="input-field"
+              type="text"
+              placeholder="Username"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              maxLength={20}
+              autoComplete="username"
+            />
+
+            <input
+              className="input-field"
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email"
+            />
+
+            <input
+              className="input-field"
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="new-password"
+            />
+
+            <input
+              className="input-field"
+              type="password"
+              placeholder="Confirm password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              autoComplete="new-password"
+            />
+          </div>
+
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              paddingBottom: 20,
+              cursor: "pointer",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={privacyAgreement}
+              onChange={(event) =>
+                setPrivacyAgreement(event.target.checked)
+              }
+            />
+
+            <span>
+              I accept the{" "}
+              <Link
+                to="/privacy-legal"
+                onClick={(event) => event.stopPropagation()}
+                style={{ color: "#ff3b30" }}
+              >
+                Privacy Policy and Terms of Service
+              </Link>
+            </span>
+          </label>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="primary-btn"
+          >
+            {loading ? "Creating..." : "Sign Up"}
+          </button>
+        </form>
+
+        {error && (
+          <p
+            style={{
+              marginTop: 12,
+              color: "#ef4444",
+              fontSize: 14,
+            }}
+          >
+            {error}
+          </p>
+        )}
+
+        <p className="small-text" style={{ marginTop: 16 }}>
+          Already have an account?{" "}
+          <Link to="/login" style={{ color: "#ff3b30" }}>
+            Log in
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
 }
