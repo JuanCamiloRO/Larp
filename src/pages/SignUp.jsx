@@ -44,6 +44,7 @@ export default function SignUp() {
         }
 
         // 1. Crear usuario
+        // 1. Crear usuario
         const { data: authData, error: signUpError } = await supabase.auth.signUp({
             email,
             password,
@@ -51,10 +52,12 @@ export default function SignUp() {
 
         if (signUpError) {
             setError(signUpError.message || 'Sign up failed');
+            setError(signUpError.message || 'Sign up failed');
             setLoading(false);
             return;
         }
 
+        // 2. Crear fila vacía en profiles (así el onboarding puede cargarla)
         // 2. Crear fila vacía en profiles (así el onboarding puede cargarla)
         if (authData?.user) {
             await supabase.from('profiles').upsert({
@@ -64,6 +67,8 @@ export default function SignUp() {
             }, { onConflict: 'id' });
         }
 
+        // 3. Ir al onboarding
+        navigate('/onboarding', { replace: true });
         // 3. Ir al onboarding
         navigate('/onboarding', { replace: true });
         setLoading(false);
@@ -96,7 +101,9 @@ export default function SignUp() {
                 </button>
 
                 {error && <p style={{ color: '#ef4444', marginTop: 12, fontSize: 14 }}>{error}</p>}
+                {error && <p style={{ color: '#ef4444', marginTop: 12, fontSize: 14 }}>{error}</p>}
 
+                <p className="small-text" style={{ marginTop: 16 }}>
                 <p className="small-text" style={{ marginTop: 16 }}>
                     Already have an account? <Link to="/login" style={{ color: '#ff3b30' }}>Log in</Link>
                 </p>

@@ -39,6 +39,7 @@ function calculateMaintenanceCalories({ age, weight, height, gender, experience,
   const parsedFrequency = Number(frequency);
 
   if ([parsedAge, parsedWeight, parsedHeight, parsedFrequency].some((v) => Number.isNaN(v) || v <= 0)) {
+  if ([parsedAge, parsedWeight, parsedHeight, parsedFrequency].some((v) => Number.isNaN(v) || v <= 0)) {
     return null;
   }
 
@@ -51,6 +52,7 @@ function calculateMaintenanceCalories({ age, weight, height, gender, experience,
   return Math.max(1200, Math.round(baseBmr * activityMultiplier * trainingAdjustment + goalAdjustment));
 }
 
+export default function OnBoardingSignUp() {
 export default function OnBoardingSignUp() {
   const { user } = useAuth();
   const { profile, loading: profileLoading } = useProfile(user?.id);
@@ -84,9 +86,12 @@ export default function OnBoardingSignUp() {
 
   if (!user) return <div className="onboarding-signup-page">Loading session...</div>;
   if (profileLoading) return <div className="onboarding-signup-page">Loading...</div>;
+  if (!user) return <div className="onboarding-signup-page">Loading session...</div>;
+  if (profileLoading) return <div className="onboarding-signup-page">Loading...</div>;
 
   const totalSteps = 8;
 
+  const update = (field, value) => setData((d) => ({ ...d, [field]: value }));
   const update = (field, value) => setData((d) => ({ ...d, [field]: value }));
 
   const canAdvance = () => {
@@ -105,12 +110,15 @@ export default function OnBoardingSignUp() {
 
   const next = () => { if (canAdvance() && step < totalSteps - 1) setStep((s) => s + 1); };
   const back = () => { if (step > 0) setStep((s) => s - 1); };
+  const next = () => { if (canAdvance() && step < totalSteps - 1) setStep((s) => s + 1); };
+  const back = () => { if (step > 0) setStep((s) => s - 1); };
 
   const finish = async () => {
     if (saving) return;
     setSaving(true);
 
     try {
+      const maintenanceCalories = calculateMaintenanceCalories(data);
       const maintenanceCalories = calculateMaintenanceCalories(data);
 
       const { error } = await supabase
@@ -146,6 +154,10 @@ export default function OnBoardingSignUp() {
     border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
     color: "#fff", fontSize: 20, fontWeight: 700, outline: "none",
     boxSizing: "border-box", textAlign: "center", WebkitAppearance: "none",
+    width: "100%", padding: "18px 20px", borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
+    color: "#fff", fontSize: 20, fontWeight: 700, outline: "none",
+    boxSizing: "border-box", textAlign: "center", WebkitAppearance: "none",
   };
 
   const renderStep = () => {
@@ -170,6 +182,7 @@ export default function OnBoardingSignUp() {
         <div style={{ width: `${progress}%`, height: "100%", background: "linear-gradient(90deg, #ff3b30, #cc2a20)", transition: "width 0.4s ease" }} />
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "24px 24px 100px", maxWidth: 400, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "24px 24px 100px", maxWidth: 400, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
         {renderStep()}
       </div>
       <div style={{ position: "fixed", bottom: 0, left: 0, width: "100%", padding: "20px 24px 32px", background: "linear-gradient(0deg, #000000 60%, transparent)", boxSizing: "border-box" }}>
@@ -189,5 +202,7 @@ export default function OnBoardingSignUp() {
   );
 }
 
+const titleStyle = { fontSize: 28, fontWeight: 900, color: "#fff", margin: "0 0 8px", lineHeight: 1.1 };
+const descStyle = { fontSize: 14, color: "rgba(255,255,255,0.4)", margin: "0 0 32px", lineHeight: 1.4 };
 const titleStyle = { fontSize: 28, fontWeight: 900, color: "#fff", margin: "0 0 8px", lineHeight: 1.1 };
 const descStyle = { fontSize: 14, color: "rgba(255,255,255,0.4)", margin: "0 0 32px", lineHeight: 1.4 };
