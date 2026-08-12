@@ -190,14 +190,7 @@ export default function PublicProfile() {
             Latest workout
           </h2>
 
-          {workoutCount > 1 && (
-    <button
-      className="public-profile-view-all"
-      onClick={() => navigate(`/profile/${userId}/workouts`)}
-    >
-      View all
-    </button>
-  )}
+
         </div>
 
         <ExerciseDisplay

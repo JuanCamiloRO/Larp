@@ -238,3 +238,23 @@
     height: 44px;
   }
 }
+
+.view-more-muscles-button {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 11px 14px;
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  border-radius: 10px;
+  background: rgba(255, 59, 48, 0.08);
+  color: #ff625b;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.view-more-muscles-button:hover {
+  background: rgba(255, 59, 48, 0.15);
+  border-color: rgba(255, 59, 48, 0.55);
+}

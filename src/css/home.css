@@ -337,10 +337,10 @@ a.workout-card__username:hover {
   gap: 5px;
   margin-top: 8px;
   padding: 0 10px;
-  border: 1px solid rgba(10, 132, 255, 0.22);
+  border: 1px solid #ff3b30;
   border-radius: 9px;
   background: transparent;
-  color: #0a84ff;
+  color: #ff3b30;
   font-size: 12px;
   font-weight: 750;
   cursor: pointer;

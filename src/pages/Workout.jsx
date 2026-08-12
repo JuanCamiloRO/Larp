@@ -8,11 +8,18 @@ import ExercisePicker from '../components/ExercisePicker';
 import ExerciseRankBadge from '../components/ExerciseRankBadge';
 import PRToast from '../components/PRToast';
 import WorkoutSummary from '../components/WorkoutSummary';
+import RestTimer from '../components/RestTimer';
 import SessionMuscleMap from '../components/SessionMuscleMap';
 import '../css/workout.css';
 
 const IMAGE_BASE_URL = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
 const EMPTY_SET = { dbId: null, reps: '', weight: '', done: false, isPR: false, saving: false };
+
+const createSetFromPrevious = (previousSet) => ({
+  ...EMPTY_SET,
+  weight: previousSet?.weight?.toString() ?? "",
+  reps: previousSet?.reps?.toString() ?? "",
+});
 
 export default function Workout() {
   const navigate = useNavigate();
@@ -28,6 +35,11 @@ export default function Workout() {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [toast, setToast] = useState(null);
   const [summary, setSummary] = useState(null);
+  const [restTimer, setRestTimer] = useState({
+  visible: false,
+  startSignal: 0,
+  exerciseId: null
+});
 
   useEffect(() => { if (!toast) return undefined; const timer = setTimeout(() => setToast(null), 2500); return () => clearTimeout(timer); }, [toast]);
   const imageUrl = (image) => image.startsWith('http') ? image : `${IMAGE_BASE_URL}${image}`;
@@ -51,10 +63,19 @@ export default function Workout() {
   }
 
   async function addExercise(exercise) {
-    const previousSets = await getPreviousSetsForExercise(exercise.id);
-    setExercises((current) => [...current, { ...exercise, previousSets, sets: [{ ...EMPTY_SET }] }]);
-    setShowPicker(false);
-  }
+  const previousSets = await getPreviousSetsForExercise(exercise.id);
+
+  setExercises((current) => [
+    ...current,
+    {
+      ...exercise,
+      previousSets,
+      sets: [createSetFromPrevious(previousSets[1])],
+    },
+  ]);
+
+  setShowPicker(false);
+}
 
   async function loadRoutines() {
     setRoutinesLoading(true); setRoutineError('');
@@ -88,6 +109,15 @@ export default function Workout() {
     if (set.dbId) { const { error } = await supabase.from('workout_sets').delete().eq('id', set.dbId); if (error) return console.error(error); }
     patchExercise(exerciseIndex, (item) => ({ ...item, sets: item.sets.filter((_, index) => index !== setIndex) }));
   }
+
+function startRestTimer(exerciseId) {
+  setRestTimer({
+    visible: true,
+    startSignal: Date.now(),
+    exerciseId,
+  });
+}
+
   function updateSet(exerciseIndex, setIndex, field, value) { patchExercise(exerciseIndex, (item) => ({ ...item, sets: item.sets.map((set, index) => index === setIndex ? { ...set, [field]: value } : set) })); }
 
   async function toggleSetDone(exerciseIndex, setIndex) {
@@ -108,6 +138,9 @@ export default function Workout() {
         console.error('Save set:', error);
         patchExercise(exerciseIndex, (item) => ({ ...item, sets: item.sets.map((current, index) => index === setIndex ? { ...current, done: false, saving: false, dbId: null, isPR: false } : current) }));
       }
+
+      startRestTimer(exercise.id);
+
       return;
     }
     if (set.dbId) { const { error } = await supabase.from('workout_sets').delete().eq('id', set.dbId); if (error) return console.error(error); }
@@ -149,7 +182,10 @@ export default function Workout() {
     <PRToast toast={toast} />
     {exercises.length === 0 ? <section className="workout-empty-state"><Dumbbell size={34} /><h2>Ready to train?</h2><p>Start an empty workout or choose a saved routine.</p><button className="workout-empty-state__button" onClick={startEmptyWorkout}><Plus size={18} /> Add exercise</button></section> : <>
       <SessionMuscleMap exercises={exercises} />
-      <section className="workout-exercises">{exercises.map((exercise, exerciseIndex) => <article className="workout-card" key={exercise.id}><header className="workout-card__header"><div className="workout-card__exercise-info">{exercise.images?.[0] && <img className="workout-card__thumbnail" src={imageUrl(exercise.images[0])} alt={exercise.name} />}<span className="workout-card__exercise-name">{exercise.name}</span><ExerciseRankBadge exerciseId={exercise.id} userId={user.id} /><button className="icon-button icon-button--delete" onClick={() => removeExercise(exerciseIndex)}><Trash size={16} /></button></div></header><div className="set-table"><div className="set-table__header"><span>Set</span><span>Previous</span><span>Weight</span><span>Reps</span><span /><span /><span /></div>{exercise.sets.map((set, setIndex) => { const previous = exercise.previousSets?.[setIndex + 1]; return <div className={`set-row ${set.done ? 'set-row--completed' : ''}`} key={set.dbId ?? `local-${setIndex}`}><span className="set-row__number">{setIndex + 1}</span><span className={`set-row__previous ${previous ? '' : 'set-row__previous--empty'}`}>{previous ? `${previous.weight} × ${previous.reps}` : '—'}</span><input className="set-row__input" type="number" step="0.5" placeholder={previous ? previous.weight : 'weight'} value={set.weight} disabled={set.done} onChange={(event) => updateSet(exerciseIndex, setIndex, 'weight', event.target.value)} /><input className="set-row__input" type="number" step="1" placeholder={previous ? previous.reps : 'reps'} value={set.reps} disabled={set.done} onChange={(event) => updateSet(exerciseIndex, setIndex, 'reps', event.target.value)} /><span className="set-row__pr-icon">{set.isPR ? '🥇' : ''}</span><button className={`set-row__check-button ${set.done ? 'set-row__check-button--active' : ''}`} onClick={() => toggleSetDone(exerciseIndex, setIndex)} disabled={set.saving}>{set.saving ? '…' : '✓'}</button><button className="set-row__delete-button" onClick={() => deleteSet(exerciseIndex, setIndex)}>✕</button></div>; })}</div><button className="add-set-button" onClick={() => addSet(exerciseIndex)}>+ Add Set</button></article>)}</section>
+      
+      <section className="workout-exercises">{exercises.map((exercise, exerciseIndex) => <article className="workout-card" key={exercise.id}><header className="workout-card__header"><div className="workout-card__exercise-info">{exercise.images?.[0] && <img className="workout-card__thumbnail" src={imageUrl(exercise.images[0])} alt={exercise.name} />}<span className="workout-card__exercise-name">{exercise.name}</span><ExerciseRankBadge exerciseId={exercise.id} userId={user.id} /><button className="icon-button icon-button--delete" onClick={() => removeExercise(exerciseIndex)}><Trash size={16} /></button>{restTimer.visible && restTimer.exerciseId === exercise.id && (
+  <RestTimer startSignal={restTimer.startSignal} />
+)}</div></header><div className="set-table"><div className="set-table__header"><span>Set</span><span>Previous</span><span>Weight</span><span>Reps</span><span /><span /><span /></div>{exercise.sets.map((set, setIndex) => { const previous = exercise.previousSets?.[setIndex + 1]; return <div className={`set-row ${set.done ? 'set-row--completed' : ''}`} key={set.dbId ?? `local-${setIndex}`}><span className="set-row__number">{setIndex + 1}</span><span className={`set-row__previous ${previous ? '' : 'set-row__previous--empty'}`}>{previous ? `${previous.weight} × ${previous.reps}` : '—'}</span><input className="set-row__input" type="number" step="0.5" placeholder={previous ? previous.weight : 'weight'} value={set.weight} disabled={set.done} onChange={(event) => updateSet(exerciseIndex, setIndex, 'weight', event.target.value)} /><input className="set-row__input" type="number" step="1" placeholder={previous ? previous.reps : 'reps'} value={set.reps} disabled={set.done} onChange={(event) => updateSet(exerciseIndex, setIndex, 'reps', event.target.value)} /><span className="set-row__pr-icon">{set.isPR ? '🥇' : ''}</span><button className={`set-row__check-button ${set.done ? 'set-row__check-button--active' : ''}`} onClick={() => toggleSetDone(exerciseIndex, setIndex)} disabled={set.saving}>{set.saving ? '…' : '✓'}</button><button className="set-row__delete-button" onClick={() => deleteSet(exerciseIndex, setIndex)}>✕</button></div>; })}</div><button className="add-set-button" onClick={() => addSet(exerciseIndex)}>+ Add Set</button></article>)}</section>
       <button className="add-exercise-button" onClick={() => setShowPicker(true)}>+ Add Exercise</button><div className="workout-actions"><button className="finish-workout-button" onClick={() => { setEndedAt(new Date()); setFinished(true); }}>Finish Workout</button><button className="delete-workout-button" onClick={() => setConfirmingDelete(true)}>Delete</button></div>
     </>}
     <div className="workout-bottom-spacer" />

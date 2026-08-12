@@ -56,7 +56,7 @@ export default function SessionMuscleMap({ exercises }) {
       <button className="muscle-map-trigger" onClick={() => setShowModal(true)}>
         <span className="muscle-map-trigger-icon">💪</span>
         <span className="muscle-map-trigger-text">
-          {totalMuscleCount} muscle{totalMuscleCount !== 1 ? 's' : ''} worked
+          See muscle{totalMuscleCount !== 1 ? 's' : ''} worked
         </span>
         <span className="muscle-map-trigger-arrow">›</span>
       </button>
