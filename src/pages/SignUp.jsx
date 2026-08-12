@@ -47,26 +47,28 @@ export default function SignUp() {
 
       
 
-        const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-        data: { username },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-    }
-})
+        const result = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: { username },
+                emailRedirectTo: `${window.location.origin}/auth/callback`,
+            },
+        })
 
-        if (error) {
-            setError(error.message)
+        const signUpError = result?.error
+
+        if (signUpError) {
+            setError(signUpError.message || 'Sign up failed. Please try again.')
+            setSuccess('')
         } else {
-            // Limpiar formulario
             setError('')
-            setSuccess('Check your email to verify your account.')
+            setSuccess('')
             setUsername('')
             setEmail('')
             setPassword('')
             setConfirmPassword('')
-            navigate('/onboarding')
+            navigate('/onboarding', { replace: true })
         }
         setLoading(false)
     }
@@ -91,7 +93,7 @@ export default function SignUp() {
   <input type="checkbox" checked={privacyAgreement} onChange={(e) => setPrivacyAgreement(e.target.checked)} />
   <span>I accept the <Link to="/privacy-legal" onClick={(e) => e.stopPropagation()} style={{ color: '#ff3b30' }}>Privacy Policy and Terms of Service</Link></span>
 </label>
-        <button onClick={handleSignUp} className="primary-btn">Sign Up</button>
+        <button type="button" onClick={handleSignUp} className="primary-btn">Sign Up</button>
 
         <div className="form-row" style={{ marginBottom: '22px' }}>
           {error && <span style={{ color: 'red', marginTop: '10px' }} className="small-text">{error}</span>}
