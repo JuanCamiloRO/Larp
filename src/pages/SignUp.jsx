@@ -2,6 +2,21 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { supabase } from '../supabase';
 
+const toDisplayMessage = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (value instanceof Error) return value.message;
+    if (typeof value === 'object') {
+        if (typeof value.message === 'string') return value.message;
+        try {
+            return JSON.stringify(value);
+        } catch {
+            return 'Something went wrong.';
+        }
+    }
+    return String(value);
+};
+
 export default function SignUp() {
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
@@ -47,7 +62,7 @@ export default function SignUp() {
 
       
 
-        const result = await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signUp({
             email,
             password,
             options: {
@@ -56,10 +71,8 @@ export default function SignUp() {
             },
         })
 
-        const signUpError = result?.error
-
         if (signUpError) {
-            setError(signUpError.message || 'Sign up failed. Please try again.')
+            setError(toDisplayMessage(signUpError) || 'Sign up failed. Please try again.')
             setSuccess('')
         } else {
             setError('')
