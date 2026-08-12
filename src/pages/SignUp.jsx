@@ -66,6 +66,7 @@ export default function SignUp() {
             setEmail('')
             setPassword('')
             setConfirmPassword('')
+            navigate('/onboarding')
         }
         setLoading(false)
     }

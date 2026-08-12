@@ -9,7 +9,6 @@ import ExerciseDisplay from '../components/ExerciseDisplay';
 import MuscleHeatmap from '../components/MuscleHeatmap';
 import BodyScan from '../components/BodyScan';
 import WeightProgress from '../components/WeightProgress';
-import OnboardingSignUp from '../components/OnBoardingSignUp';
 import ViewFollowers from '../components/ViewFollowers';
 import ViewFollowed from '../components/ViewFollowed';
 import WorkoutCalendar from '../components/WorkoutCalendar';
@@ -32,11 +31,6 @@ export default function Dashboard() {
   const { profile, loading: profileLoading, error: profileError } = useProfile(user?.id, refreshKey);
   const { workouts, loading: workoutsLoading, error: workoutsError } = useWorkout(user?.id);
 
-  useEffect(() => {
-    if (!profileLoading && profile && !profile.onboarding_completed) {
-      navigate("/onboarding");
-    }
-  }, [profileLoading, profile, navigate]);
 
   const recentWorkouts = workouts?.slice(0, 3) || [];
   const workoutCount = workouts?.length || 0;
