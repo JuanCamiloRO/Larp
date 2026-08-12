@@ -42,8 +42,6 @@ function calculateMaintenanceCalories({ age, weight, height, gender, experience,
     return null;
   }
 
-  // Mifflin-St Jeor uses a +5 (male) / -161 (female) constant. For "other" /
-  // unspecified we split the difference rather than default to one sex.
   const genderConstant = { male: 5, female: -161 }[gender] ?? -78;
 
   const baseBmr = 10 * parsedWeight + 6.25 * parsedHeight - 5 * parsedAge + genderConstant;
@@ -76,8 +74,6 @@ function OnBoardingSignUp() {
   const { profile, loading: profileLoading } = useProfile(user?.id);
   const navigate = useNavigate();
 
-  // Hooks must always run, in the same order, on every render —
-  // so all useState calls live above any early return.
   const [step, setStep] = useState(0);
   const [data, setData] = useState({
     name: "",
@@ -91,20 +87,38 @@ function OnBoardingSignUp() {
   });
   const [saving, setSaving] = useState(false);
 
-  // Redirect away from onboarding once we know it's already done, instead
-  // of calling navigate() as a side effect during render.
+  // Si ya completó el onboarding, redirigir al dashboard
   useEffect(() => {
     if (!profileLoading && profile?.onboarding_completed) {
       navigate("/");
     }
   }, [profileLoading, profile, navigate]);
 
-  if (!user || profileLoading || !profile) {
-    return <div className="onboarding-signup-page">Loading...</div>;
+  // Precargar datos si el perfil ya tiene algo (por si el usuario recarga la página a mitad)
+  useEffect(() => {
+    if (profile) {
+      setData((d) => ({
+        ...d,
+        name: profile.username || profile.name || d.name,
+        age: profile.age ? String(profile.age) : d.age,
+        gender: profile.gender || d.gender,
+        weight: profile.weight ? String(profile.weight) : d.weight,
+        height: profile.height ? String(profile.height) : d.height,
+        experience: profile.experience || d.experience,
+        goal: profile.goal || d.goal,
+        frequency: profile.frequency ? String(profile.frequency) : d.frequency,
+      }));
+    }
+  }, [profile]);
+
+  // Si no hay usuario autenticado, mostrar loading (o redirigir a login)
+  if (!user) {
+    return <div className="onboarding-signup-page">Loading session...</div>;
   }
 
-  if (profile.onboarding_completed) {
-    return null;
+  // Si aún está cargando el perfil por primera vez, mostrar loading brevemente
+  if (profileLoading && !profile) {
+    return <div className="onboarding-signup-page">Loading...</div>;
   }
 
   const totalSteps = 8;
@@ -137,8 +151,9 @@ function OnBoardingSignUp() {
   };
 
   const finish = async () => {
-    if (saving) return; // guard against double-submit (double click/tap)
+    if (saving) return;
     setSaving(true);
+
     try {
       const maintenanceCalories = calculateMaintenanceCalories({
         age: data.age,
@@ -150,12 +165,13 @@ function OnBoardingSignUp() {
         frequency: data.frequency,
       });
 
+      // Upsert: si no existe la fila, la crea; si existe, la actualiza
       const { error } = await supabase
         .from("profiles")
-        .update(
+        .upsert(
           {
             id: user.id,
-            name: data.name,
+            username: data.name,   // ← Si tu columna se llama 'name' en vez de 'username', cámbialo aquí
             age: Number(data.age),
             gender: data.gender,
             weight: Number(data.weight),
@@ -166,7 +182,8 @@ function OnBoardingSignUp() {
             daily_calorie_goal: maintenanceCalories,
             onboarding_completed: true,
           },
-        ).eq("id", user.id);
+          { onConflict: 'id' }
+        );
 
       if (error) throw error;
 
@@ -318,7 +335,7 @@ function OnBoardingSignUp() {
                   }}
                 >
                   <span style={{ display: "block", fontSize: 15, fontWeight: 800 }}>{lvl.label}</span>
-                  <span style={{ display: "block", fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>{lvl.desc}</span>
+                  <span style={{ display: "block", FontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>{lvl.desc}</span>
                 </button>
               ))}
             </div>
@@ -359,7 +376,7 @@ function OnBoardingSignUp() {
             <h2 style={titleStyle}>How many days a week do you train?</h2>
             <p style={descStyle}>We'll suggest the optimal routine for you.</p>
             <p style={{ ...descStyle, marginBottom: 12 }}>
-              Based on your info, we’ll set your calorie goal to about {calculateMaintenanceCalories(data) || "..."} kcal/day.
+              Based on your info, we'll set your calorie goal to about {calculateMaintenanceCalories(data) || "..."} kcal/day.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {FREQUENCIES.map((f) => (
@@ -407,7 +424,6 @@ function OnBoardingSignUp() {
         flexDirection: "column",
       }}
     >
-      {/* Barra de progreso */}
       <div style={{ width: "100%", height: 3, background: "rgba(255,255,255,0.05)" }}>
         <div
           style={{
@@ -419,7 +435,6 @@ function OnBoardingSignUp() {
         />
       </div>
 
-      {/* Contenido */}
       <div
         style={{
           flex: 1,
@@ -437,7 +452,6 @@ function OnBoardingSignUp() {
         {renderStep()}
       </div>
 
-      {/* Footer: navegación + indicadores */}
       <div
         style={{
           position: "fixed",
@@ -449,7 +463,6 @@ function OnBoardingSignUp() {
           boxSizing: "border-box",
         }}
       >
-        {/* Indicadores de paso */}
         <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 16 }}>
           {Array.from({ length: totalSteps }).map((_, i) => (
             <div
@@ -465,7 +478,6 @@ function OnBoardingSignUp() {
           ))}
         </div>
 
-        {/* Botones */}
         <div style={{ display: "flex", gap: 10, maxWidth: 400, margin: "0 auto", width: "100%" }}>
           {step > 0 && (
             <button
