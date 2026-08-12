@@ -38,38 +38,20 @@ function calculateMaintenanceCalories({ age, weight, height, gender, experience,
   const parsedHeight = Number(height);
   const parsedFrequency = Number(frequency);
 
-  if ([parsedAge, parsedWeight, parsedHeight, parsedFrequency].some((value) => Number.isNaN(value) || value <= 0)) {
+  if ([parsedAge, parsedWeight, parsedHeight, parsedFrequency].some((v) => Number.isNaN(v) || v <= 0)) {
     return null;
   }
 
   const genderConstant = { male: 5, female: -161 }[gender] ?? -78;
-
   const baseBmr = 10 * parsedWeight + 6.25 * parsedHeight - 5 * parsedAge + genderConstant;
-  const activityMultiplier = {
-    2: 1.2,
-    3: 1.375,
-    4: 1.55,
-    5: 1.725,
-    6: 1.9,
-  }[parsedFrequency] || 1.2;
-
-  const trainingAdjustment = {
-    beginner: 0.95,
-    intermediate: 1,
-    advanced: 1.05,
-  }[experience] || 1;
-
-  const goalAdjustment = {
-    muscle: 200,
-    fatloss: -500,
-    strength: 400,
-    maintain: 0,
-  }[goal] || 0;
+  const activityMultiplier = { 2: 1.2, 3: 1.375, 4: 1.55, 5: 1.725, 6: 1.9 }[parsedFrequency] || 1.2;
+  const trainingAdjustment = { beginner: 0.95, intermediate: 1, advanced: 1.05 }[experience] || 1;
+  const goalAdjustment = { muscle: 200, fatloss: -500, strength: 400, maintain: 0 }[goal] || 0;
 
   return Math.max(1200, Math.round(baseBmr * activityMultiplier * trainingAdjustment + goalAdjustment));
 }
 
-function OnBoardingSignUp() {
+export default function OnBoardingSignUp() {
   const { user } = useAuth();
   const { profile, loading: profileLoading } = useProfile(user?.id);
   const navigate = useNavigate();
@@ -87,45 +69,33 @@ function OnBoardingSignUp() {
   });
   const [saving, setSaving] = useState(false);
 
-  // Si ya completó el onboarding, redirigir al dashboard
+  // Si ya hizo onboarding, ir a home
   useEffect(() => {
     if (!profileLoading && profile?.onboarding_completed) {
       navigate("/");
     }
   }, [profileLoading, profile, navigate]);
 
-  // Precargar datos si el perfil ya tiene algo (por si el usuario recarga la página a mitad)
+  // Precargar datos si el perfil ya tiene algo
   useEffect(() => {
     if (profile) {
       setData((d) => ({
         ...d,
-        name: profile.username || profile.name || d.name,
+        name: profile.username || d.name,
         age: profile.age ? String(profile.age) : d.age,
         gender: profile.gender || d.gender,
         weight: profile.weight ? String(profile.weight) : d.weight,
         height: profile.height ? String(profile.height) : d.height,
-        experience: profile.experience || d.experience,
-        goal: profile.goal || d.goal,
-        frequency: profile.frequency ? String(profile.frequency) : d.frequency,
       }));
     }
   }, [profile]);
 
-  // Si no hay usuario autenticado, mostrar loading (o redirigir a login)
-  if (!user) {
-    return <div className="onboarding-signup-page">Loading session...</div>;
-  }
-
-  // Si aún está cargando el perfil por primera vez, mostrar loading brevemente
-  if (profileLoading && !profile) {
-    return <div className="onboarding-signup-page">Loading...</div>;
-  }
+  if (!user) return <div className="onboarding-signup-page">Loading session...</div>;
+  if (profileLoading) return <div className="onboarding-signup-page">Loading...</div>;
 
   const totalSteps = 8;
 
-  const update = (field, value) => {
-    setData((d) => ({ ...d, [field]: value }));
-  };
+  const update = (field, value) => setData((d) => ({ ...d, [field]: value }));
 
   const canAdvance = () => {
     switch (step) {
@@ -141,52 +111,33 @@ function OnBoardingSignUp() {
     }
   };
 
-  const next = () => {
-    if (!canAdvance()) return;
-    if (step < totalSteps - 1) setStep((s) => s + 1);
-  };
-
-  const back = () => {
-    if (step > 0) setStep((s) => s - 1);
-  };
+  const next = () => { if (canAdvance() && step < totalSteps - 1) setStep((s) => s + 1); };
+  const back = () => { if (step > 0) setStep((s) => s - 1); };
 
   const finish = async () => {
     if (saving) return;
     setSaving(true);
 
     try {
-      const maintenanceCalories = calculateMaintenanceCalories({
-        age: data.age,
-        weight: data.weight,
-        height: data.height,
-        gender: data.gender,
-        experience: data.experience,
-        goal: data.goal,
-        frequency: data.frequency,
-      });
+      const maintenanceCalories = calculateMaintenanceCalories(data);
 
-      // Upsert: si no existe la fila, la crea; si existe, la actualiza
       const { error } = await supabase
         .from("profiles")
-        .upsert(
-          {
-            id: user.id,
-            username: data.name,   // ← Si tu columna se llama 'name' en vez de 'username', cámbialo aquí
-            age: Number(data.age),
-            gender: data.gender,
-            weight: Number(data.weight),
-            height: Number(data.height),
-            experience: data.experience,
-            goal: data.goal,
-            frequency: Number(data.frequency),
-            daily_calorie_goal: maintenanceCalories,
-            onboarding_completed: true,
-          },
-          { onConflict: 'id' }
-        );
+        .update({
+          username: data.name,
+          age: Number(data.age),
+          gender: data.gender,
+          weight: Number(data.weight),
+          height: Number(data.height),
+          experience: data.experience,
+          goal: data.goal,
+          frequency: Number(data.frequency),
+          daily_calorie_goal: maintenanceCalories,
+          onboarding_completed: true,
+        })
+        .eq("id", user.id);
 
       if (error) throw error;
-
       navigate("/");
     } catch (err) {
       console.error(err);
@@ -199,320 +150,45 @@ function OnBoardingSignUp() {
   const progress = ((step + 1) / totalSteps) * 100;
 
   const inputStyle = {
-    width: "100%",
-    padding: "18px 20px",
-    borderRadius: 14,
-    border: "1px solid rgba(255,255,255,0.1)",
-    background: "rgba(255,255,255,0.04)",
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: 700,
-    outline: "none",
-    boxSizing: "border-box",
-    textAlign: "center",
-    WebkitAppearance: "none",
+    width: "100%", padding: "18px 20px", borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
+    color: "#fff", fontSize: 20, fontWeight: 700, outline: "none",
+    boxSizing: "border-box", textAlign: "center", WebkitAppearance: "none",
   };
 
   const renderStep = () => {
     switch (step) {
-      case 0:
-        return (
-          <>
-            <h2 style={titleStyle}>What's your name?</h2>
-            <p style={descStyle}>This will appear on your public profile.</p>
-            <input
-              type="text"
-              placeholder="Your name"
-              value={data.name}
-              onChange={(e) => update("name", e.target.value)}
-              style={{ ...inputStyle, textAlign: "left", fontSize: 18 }}
-              maxLength={20}
-            />
-          </>
-        );
-
-      case 1:
-        return (
-          <>
-            <h2 style={titleStyle}>What's your age?</h2>
-            <p style={descStyle}>We need this to adjust your basal metabolism.</p>
-            <input
-              type="number"
-              inputMode="decimal"
-              placeholder="25"
-              value={data.age}
-              onChange={(e) => update("age", e.target.value)}
-              style={inputStyle}
-            />
-          </>
-        );
-
-      case 2:
-        return (
-          <>
-            <h2 style={titleStyle}>What's your gender?</h2>
-            <p style={descStyle}>This affects your basal metabolism calculation.</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {GENDERS.map((g) => (
-                <button
-                  key={g.value}
-                  onClick={() => update("gender", g.value)}
-                  style={{
-                    padding: "18px 20px",
-                    borderRadius: 14,
-                    border: data.gender === g.value ? "1px solid #d4af37" : "1px solid rgba(255,255,255,0.08)",
-                    background: data.gender === g.value ? "rgba(212,175,55,0.1)" : "rgba(255,255,255,0.03)",
-                    color: "#fff",
-                    textAlign: "left",
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <span style={{ display: "block", fontSize: 15, fontWeight: 800 }}>{g.label}</span>
-                </button>
-              ))}
-            </div>
-          </>
-        );
-
-      case 3:
-        return (
-          <>
-            <h2 style={titleStyle}>How much do you weigh?</h2>
-            <p style={descStyle}>We'll use this to calculate your FFMI and track your progress.</p>
-            <div style={{ position: "relative" }}>
-              <input
-                type="number"
-                inputMode="decimal"
-                placeholder="78"
-                value={data.weight}
-                onChange={(e) => update("weight", e.target.value)}
-                style={inputStyle}
-              />
-              <span style={{ position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.3)", fontSize: 14, fontWeight: 700 }}>kg</span>
-            </div>
-          </>
-        );
-
-      case 4:
-        return (
-          <>
-            <h2 style={titleStyle}>How tall are you?</h2>
-            <p style={descStyle}>We'll use this to calculate your BMI and proportions.</p>
-            <div style={{ position: "relative" }}>
-              <input
-                type="number"
-                inputMode="decimal"
-                placeholder="175"
-                value={data.height}
-                onChange={(e) => update("height", e.target.value)}
-                style={inputStyle}
-              />
-              <span style={{ position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.3)", fontSize: 14, fontWeight: 700 }}>cm</span>
-            </div>
-          </>
-        );
-
-      case 5:
-        return (
-          <>
-            <h2 style={titleStyle}>What's your level?</h2>
-            <p style={descStyle}>Be honest, this affects your recommendations.</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {EXPERIENCE_LEVELS.map((lvl) => (
-                <button
-                  key={lvl.value}
-                  onClick={() => update("experience", lvl.value)}
-                  style={{
-                    padding: "18px 20px",
-                    borderRadius: 14,
-                    border: data.experience === lvl.value ? "1px solid #d4af37" : "1px solid rgba(255,255,255,0.08)",
-                    background: data.experience === lvl.value ? "rgba(212,175,55,0.1)" : "rgba(255,255,255,0.03)",
-                    color: "#fff",
-                    textAlign: "left",
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <span style={{ display: "block", fontSize: 15, fontWeight: 800 }}>{lvl.label}</span>
-                  <span style={{ display: "block", FontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>{lvl.desc}</span>
-                </button>
-              ))}
-            </div>
-          </>
-        );
-
-      case 6:
-        return (
-          <>
-            <h2 style={titleStyle}>What's your goal?</h2>
-            <p style={descStyle}>We'll personalize your plan based on this.</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {GOALS.map((g) => (
-                <button
-                  key={g.value}
-                  onClick={() => update("goal", g.value)}
-                  style={{
-                    padding: "24px 12px",
-                    borderRadius: 14,
-                    border: data.goal === g.value ? "1px solid #d4af37" : "1px solid rgba(255,255,255,0.08)",
-                    background: data.goal === g.value ? "rgba(212,175,55,0.1)" : "rgba(255,255,255,0.03)",
-                    color: "#fff",
-                    textAlign: "center",
-                    cursor: "pointer",
-                  }}
-                >
-                  <span style={{ fontSize: 28, display: "block", marginBottom: 6 }}>{g.icon}</span>
-                  <span style={{ fontSize: 14, fontWeight: 800 }}>{g.label}</span>
-                </button>
-              ))}
-            </div>
-          </>
-        );
-
-      case 7:
-        return (
-          <>
-            <h2 style={titleStyle}>How many days a week do you train?</h2>
-            <p style={descStyle}>We'll suggest the optimal routine for you.</p>
-            <p style={{ ...descStyle, marginBottom: 12 }}>
-              Based on your info, we'll set your calorie goal to about {calculateMaintenanceCalories(data) || "..."} kcal/day.
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {FREQUENCIES.map((f) => (
-                <button
-                  key={f.value}
-                  onClick={() => update("frequency", f.value)}
-                  style={{
-                    padding: "16px 20px",
-                    borderRadius: 14,
-                    border: Number(data.frequency) === f.value ? "1px solid #d4af37" : "1px solid rgba(255,255,255,0.08)",
-                    background: Number(data.frequency) === f.value ? "rgba(212,175,55,0.1)" : "rgba(255,255,255,0.03)",
-                    color: "#fff",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    cursor: "pointer",
-                  }}
-                >
-                  <span style={{ fontSize: 15, fontWeight: 800 }}>{f.label} <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, fontWeight: 500 }}>/ week</span></span>
-                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{f.desc}</span>
-                </button>
-              ))}
-            </div>
-          </>
-        );
-
-      default:
-        return null;
+      case 0: return (<><h2 style={titleStyle}>What's your name?</h2><p style={descStyle}>This will appear on your public profile.</p><input type="text" placeholder="Your name" value={data.name} onChange={(e) => update("name", e.target.value)} style={{ ...inputStyle, textAlign: "left", fontSize: 18 }} maxLength={20} /></>);
+      case 1: return (<><h2 style={titleStyle}>What's your age?</h2><p style={descStyle}>We need this to adjust your basal metabolism.</p><input type="number" inputMode="decimal" placeholder="25" value={data.age} onChange={(e) => update("age", e.target.value)} style={inputStyle} /></>);
+      case 2: return (<><h2 style={titleStyle}>What's your gender?</h2><p style={descStyle}>This affects your basal metabolism calculation.</p><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{GENDERS.map((g) => (<button key={g.value} onClick={() => update("gender", g.value)} style={{ padding: "18px 20px", borderRadius: 14, border: data.gender === g.value ? "1px solid #d4af37" : "1px solid rgba(255,255,255,0.08)", background: data.gender === g.value ? "rgba(212,175,55,0.1)" : "rgba(255,255,255,0.03)", color: "#fff", textAlign: "left", cursor: "pointer" }}><span style={{ fontSize: 15, fontWeight: 800 }}>{g.label}</span></button>))}</div></>);
+      case 3: return (<><h2 style={titleStyle}>How much do you weigh?</h2><p style={descStyle}>We'll use this to calculate your FFMI and track your progress.</p><div style={{ position: "relative" }}><input type="number" inputMode="decimal" placeholder="78" value={data.weight} onChange={(e) => update("weight", e.target.value)} style={inputStyle} /><span style={{ position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.3)", fontSize: 14, fontWeight: 700 }}>kg</span></div></>);
+      case 4: return (<><h2 style={titleStyle}>How tall are you?</h2><p style={descStyle}>We'll use this to calculate your BMI and proportions.</p><div style={{ position: "relative" }}><input type="number" inputMode="decimal" placeholder="175" value={data.height} onChange={(e) => update("height", e.target.value)} style={inputStyle} /><span style={{ position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.3)", fontSize: 14, fontWeight: 700 }}>cm</span></div></>);
+      case 5: return (<><h2 style={titleStyle}>What's your level?</h2><p style={descStyle}>Be honest, this affects your recommendations.</p><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{EXPERIENCE_LEVELS.map((lvl) => (<button key={lvl.value} onClick={() => update("experience", lvl.value)} style={{ padding: "18px 20px", borderRadius: 14, border: data.experience === lvl.value ? "1px solid #d4af37" : "1px solid rgba(255,255,255,0.08)", background: data.experience === lvl.value ? "rgba(212,175,55,0.1)" : "rgba(255,255,255,0.03)", color: "#fff", textAlign: "left", cursor: "pointer" }}><span style={{ display: "block", fontSize: 15, fontWeight: 800 }}>{lvl.label}</span><span style={{ display: "block", fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>{lvl.desc}</span></button>))}</div></>);
+      case 6: return (<><h2 style={titleStyle}>What's your goal?</h2><p style={descStyle}>We'll personalize your plan based on this.</p><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>{GOALS.map((g) => (<button key={g.value} onClick={() => update("goal", g.value)} style={{ padding: "24px 12px", borderRadius: 14, border: data.goal === g.value ? "1px solid #d4af37" : "1px solid rgba(255,255,255,0.08)", background: data.goal === g.value ? "rgba(212,175,55,0.1)" : "rgba(255,255,255,0.03)", color: "#fff", textAlign: "center", cursor: "pointer" }}><span style={{ fontSize: 28, display: "block", marginBottom: 6 }}>{g.icon}</span><span style={{ fontSize: 14, fontWeight: 800 }}>{g.label}</span></button>))}</div></>);
+      case 7: return (<><h2 style={titleStyle}>How many days a week do you train?</h2><p style={descStyle}>We'll suggest the optimal routine for you.</p><p style={{ ...descStyle, marginBottom: 12 }}>Based on your info, we'll set your calorie goal to about {calculateMaintenanceCalories(data) || "..."} kcal/day.</p><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{FREQUENCIES.map((f) => (<button key={f.value} onClick={() => update("frequency", f.value)} style={{ padding: "16px 20px", borderRadius: 14, border: Number(data.frequency) === f.value ? "1px solid #d4af37" : "1px solid rgba(255,255,255,0.08)", background: Number(data.frequency) === f.value ? "rgba(212,175,55,0.1)" : "rgba(255,255,255,0.03)", color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}><span style={{ fontSize: 15, fontWeight: 800 }}>{f.label} <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, fontWeight: 500 }}>/ week</span></span><span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{f.desc}</span></button>))}</div></>);
+      default: return null;
     }
   };
 
   const isLastStep = step === totalSteps - 1;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: "100%",
-        background: "#0f172a",
-        zIndex: 2000,
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
+    <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "#0f172a", zIndex: 2000, display: "flex", flexDirection: "column" }}>
       <div style={{ width: "100%", height: 3, background: "rgba(255,255,255,0.05)" }}>
-        <div
-          style={{
-            width: `${progress}%`,
-            height: "100%",
-            background: "linear-gradient(90deg, #d4af37, #b8860b)",
-            transition: "width 0.4s ease",
-          }}
-        />
+        <div style={{ width: `${progress}%`, height: "100%", background: "linear-gradient(90deg, #d4af37, #b8860b)", transition: "width 0.4s ease" }} />
       </div>
-
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          padding: "24px 24px 100px",
-          maxWidth: 400,
-          width: "100%",
-          margin: "0 auto",
-          boxSizing: "border-box",
-          animation: "fadeInUp 0.3s ease",
-        }}
-      >
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "24px 24px 100px", maxWidth: 400, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
         {renderStep()}
       </div>
-
-      <div
-        style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          width: "100%",
-          padding: "20px 24px 32px",
-          background: "linear-gradient(0deg, #0f172a 60%, transparent)",
-          boxSizing: "border-box",
-        }}
-      >
+      <div style={{ position: "fixed", bottom: 0, left: 0, width: "100%", padding: "20px 24px 32px", background: "linear-gradient(0deg, #0f172a 60%, transparent)", boxSizing: "border-box" }}>
         <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 16 }}>
           {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              style={{
-                width: i === step ? 20 : 6,
-                height: 6,
-                borderRadius: 3,
-                background: i === step ? "#d4af37" : i < step ? "rgba(212,175,55,0.4)" : "rgba(255,255,255,0.1)",
-                transition: "all 0.3s ease",
-              }}
-            />
+            <div key={i} style={{ width: i === step ? 20 : 6, height: 6, borderRadius: 3, background: i === step ? "#d4af37" : i < step ? "rgba(212,175,55,0.4)" : "rgba(255,255,255,0.1)", transition: "all 0.3s ease" }} />
           ))}
         </div>
-
         <div style={{ display: "flex", gap: 10, maxWidth: 400, margin: "0 auto", width: "100%" }}>
-          {step > 0 && (
-            <button
-              onClick={back}
-              style={{
-                flex: 1,
-                padding: "14px",
-                borderRadius: 12,
-                border: "1px solid rgba(255,255,255,0.1)",
-                background: "transparent",
-                color: "rgba(255,255,255,0.5)",
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              Atrás
-            </button>
-          )}
-          <button
-            onClick={isLastStep ? finish : next}
-            disabled={!canAdvance() || saving}
-            style={{
-              flex: step > 0 ? 2 : 1,
-              padding: "14px",
-              borderRadius: 12,
-              border: "none",
-              background: canAdvance() && !saving ? "linear-gradient(135deg, #d4af37, #b8860b)" : "#334155",
-              color: canAdvance() && !saving ? "#0a0a0a" : "#64748b",
-              fontSize: 14,
-              fontWeight: 800,
-              cursor: canAdvance() && !saving ? "pointer" : "not-allowed",
-              boxShadow: canAdvance() && !saving ? "0 4px 20px rgba(212,175,55,0.25)" : "none",
-            }}
-          >
+          {step > 0 && <button onClick={back} style={{ flex: 1, padding: "14px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: "rgba(255,255,255,0.5)", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Back</button>}
+          <button onClick={isLastStep ? finish : next} disabled={!canAdvance() || saving} style={{ flex: step > 0 ? 2 : 1, padding: "14px", borderRadius: 12, border: "none", background: canAdvance() && !saving ? "linear-gradient(135deg, #d4af37, #b8860b)" : "#334155", color: canAdvance() && !saving ? "#0a0a0a" : "#64748b", fontSize: 14, fontWeight: 800, cursor: canAdvance() && !saving ? "pointer" : "not-allowed" }}>
             {saving ? "Saving..." : isLastStep ? "Start!" : "Next"}
           </button>
         </div>
@@ -521,19 +197,5 @@ function OnBoardingSignUp() {
   );
 }
 
-const titleStyle = {
-  fontSize: 28,
-  fontWeight: 900,
-  color: "#fff",
-  margin: "0 0 8px",
-  lineHeight: 1.1,
-};
-
-const descStyle = {
-  fontSize: 14,
-  color: "rgba(255,255,255,0.4)",
-  margin: "0 0 32px",
-  lineHeight: 1.4,
-};
-
-export default OnBoardingSignUp;
+const titleStyle = { fontSize: 28, fontWeight: 900, color: "#fff", margin: "0 0 8px", lineHeight: 1.1 };
+const descStyle = { fontSize: 14, color: "rgba(255,255,255,0.4)", margin: "0 0 32px", lineHeight: 1.4 };

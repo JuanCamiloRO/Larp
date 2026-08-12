@@ -2,24 +2,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { supabase } from '../supabase';
 
-const toDisplayMessage = (value) => {
-    if (!value) return 'Something went wrong.';
-    if (typeof value === 'string') return value;
-    if (value instanceof Error) return value.message;
-    if (typeof value === 'object') {
-        if (typeof value.message === 'string') return value.message;
-        if (typeof value.error_description === 'string') return value.error_description;
-        // Si es un objeto vacío, damos un mensaje útil
-        if (Object.keys(value).length === 0) return 'Registration failed. The email may already be in use, or there is a network issue.';
-        try {
-            return JSON.stringify(value);
-        } catch {
-            return 'Something went wrong.';
-        }
-    }
-    return String(value);
-};
-
 export default function SignUp() {
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
@@ -28,14 +10,12 @@ export default function SignUp() {
     const [privacyAgreement, setPrivacyAgreement] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
     const navigate = useNavigate();
 
     const handleSignUp = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
-        setSuccess('');
 
         if (!email || !password || !username) {
             setError('Please, fill all the fields');
@@ -63,43 +43,30 @@ export default function SignUp() {
             return;
         }
 
+        // 1. Crear usuario
         const { data: authData, error: signUpError } = await supabase.auth.signUp({
             email,
             password,
-            options: {
-                data: { username },
-                emailRedirectTo: `${window.location.origin}/auth/callback`,
-            },
         });
 
         if (signUpError) {
-            setError(toDisplayMessage(signUpError));
+            setError(signUpError.message || 'Sign up failed');
             setLoading(false);
             return;
         }
 
-        // Si llegamos aquí, el usuario está creado. Creamos/actualizamos su fila en profiles.
+        // 2. Crear fila vacía en profiles (así el onboarding puede cargarla)
         if (authData?.user) {
-            const { error: profileError } = await supabase
-                .from('profiles')
-                .upsert({
-                    id: authData.user.id,
-                    username: username,
-                    email: email,
-                    onboarding_completed: false,
-                }, { onConflict: 'id' });
-
-            if (profileError) {
-                console.error('Error creating profile:', profileError);
-                // No bloqueamos al usuario, solo logueamos. El onboarding puede recuperarse.
-            }
+            await supabase.from('profiles').upsert({
+                id: authData.user.id,
+                username: username,
+                email: email,
+                onboarding_completed: false,
+            }, { onConflict: 'id' });
         }
 
-        setSuccess('Account created! Redirecting...');
-        setTimeout(() => {
-            navigate('/onboarding', { replace: true });
-        }, 800);
-
+        // 3. Ir al onboarding
+        navigate('/onboarding', { replace: true });
         setLoading(false);
     };
 
@@ -129,12 +96,9 @@ export default function SignUp() {
                     {loading ? 'Creating...' : 'Sign Up'}
                 </button>
 
-                <div className="form-row" style={{ marginBottom: '22px', marginTop: '12px', flexDirection: 'column', alignItems: 'center' }}>
-                    {error && <span style={{ color: '#ef4444', fontSize: 14 }} className="small-text">{error}</span>}
-                    {success && <span style={{ color: '#22c55e', fontSize: 14 }} className="small-text">{success}</span>}
-                </div>
+                {error && <p style={{ color: '#ef4444', marginTop: 12, fontSize: 14 }}>{error}</p>}
 
-                <p className="small-text">
+                <p className="small-text" style={{ marginTop: 16 }}>
                     Already have an account? <Link to="/login" style={{ color: '#ff3b30' }}>Log in</Link>
                 </p>
             </div>
