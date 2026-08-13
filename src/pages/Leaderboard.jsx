@@ -75,17 +75,6 @@ export default function Leaderboard() {
 
   return (
     <div >
-      <header className="settings-header">
-      <button className="settings-header__back"
-        onClick={() => setSelectedExercise(null)}
-      >
-        <ArrowLeft size={24} />
-      </button>
-      <div>
-      <p>Leaderboards</p>
-      <h1>{selectedExercise?.name}</h1>
-      </div>
-      </header>
       <div style={{ padding: '16px' }}>
       <div className="exercise-header" style={{ marginBottom: '4px' }}>
         {selectedExercise.images?.[0] && (
@@ -95,7 +84,7 @@ export default function Leaderboard() {
             alt={selectedExercise.name}            
           />
         )}
-        <h1 style={{ color: 'white', fontSize: '20px', margin: 0 }}>Current Standings</h1>
+        <h1 style={{ color: 'white', fontSize: '20px', margin: 0 }}>{selectedExercise.name}</h1>
       </div>
 
       <p className="subtle" style={{ fontSize: '13px', marginBottom: '16px' }}>

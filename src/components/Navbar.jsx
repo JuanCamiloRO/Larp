@@ -5,6 +5,7 @@ import {
   Trophy,
   Hamburger,
   TrendingUp,
+  Play,
 } from 'lucide-react';
 import { useWorkoutContext } from '../context/WorkoutContext.jsx';
 
@@ -23,11 +24,6 @@ export default function NavBar() {
 
   return (
     <>
-      {showActiveWorkoutBanner && (
-        <Link to="/workout" className="active-workout-banner">
-          🏋️ Workout in progress — tap to resume
-        </Link>
-      )}
 
       <nav className="bottom-nav">
         <NavLink to="/" className="nav-item" end>
@@ -40,11 +36,19 @@ export default function NavBar() {
           <span>Ranking</span>
         </NavLink>
 
+        {showActiveWorkoutBanner ? (
         <NavLink to="/workout" className="nav-center-wrap">
+          <div className="nav-center-btn">
+            <Play size={22} />
+          </div>
+        </NavLink>):
+      
+        (<NavLink to="/workout" className="nav-center-wrap">
           <div className="nav-center-btn">
             <PlusCircle size={22} />
           </div>
         </NavLink>
+        )}
 
         <NavLink to="/nutrition" className="nav-item">
           <Hamburger size={24} />

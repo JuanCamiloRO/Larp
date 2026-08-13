@@ -19,29 +19,6 @@ const TIER_BAR_COLORS = {
   'Fake Natty': '#7409a1',
 };
 
-function MuscleRanksHeader() {
-  const navigate = useNavigate();
-
-  return (
-    <header className="muscle-ranks-header">
-      <button
-        type="button"
-        className="muscle-ranks-back"
-        onClick={() => navigate(-1)}
-        aria-label="Go back"
-      >
-        <ArrowLeft size={21} />
-      </button>
-
-      <div>
-        <p>Progress</p>
-        <h1>Muscle ranks</h1>
-      </div>
-
-      <span aria-hidden="true" />
-    </header>
-  );
-}
 
 function MuscleRanksSkeleton() {
   return (
@@ -50,7 +27,7 @@ function MuscleRanksSkeleton() {
       aria-busy="true"
       aria-label="Loading muscle ranks"
     >
-      <MuscleRanksHeader />
+
 
       <section className="muscle-ranks-content">
         <header className="muscle-ranks-page-header">
@@ -230,7 +207,6 @@ function EmptyState() {
 
   return (
     <main className="muscle-ranks-page page-transition">
-      <MuscleRanksHeader />
 
       <section className="muscle-ranks-content">
         <div className="muscle-ranks-empty">
@@ -299,7 +275,6 @@ export default function MuscleRanks() {
 
   return (
     <main className="muscle-ranks-page">
-      <MuscleRanksHeader />
 
       <section className="muscle-ranks-content">
         <div className="muscle-ranks-hero">

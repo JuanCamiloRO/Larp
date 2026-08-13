@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Compass, Dumbbell, ListPlus, Plus, Trash, X } from 'lucide-react';
 import { supabase } from '../supabase';
@@ -14,14 +14,18 @@ import RestTimer from '../components/RestTimer';
 import SessionMuscleMap from '../components/SessionMuscleMap';
 import '../css/workout.css';
 
+
 const IMAGE_BASE_URL = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
 const EMPTY_SET = { dbId: null, reps: '', weight: '', done: false, isPR: false, saving: false };
+const NOTE_SAVE_DEBOUNCE_MS = 600;
+
 
 const createSetFromPrevious = (previousSet) => ({
   ...EMPTY_SET,
   weight: previousSet?.weight?.toString() ?? "",
   reps: previousSet?.reps?.toString() ?? "",
 });
+
 
 export default function Workout() {
   const navigate = useNavigate();
@@ -38,11 +42,15 @@ export default function Workout() {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [toast, setToast] = useState(null);
   const [summary, setSummary] = useState(null);
-  
+  const noteSaveTimers = useRef({});
+
+
 
   useEffect(() => { if (!toast) return undefined; const timer = setTimeout(() => setToast(null), 2500); return () => clearTimeout(timer); }, [toast]);
+  useEffect(() => () => { Object.values(noteSaveTimers.current).forEach(clearTimeout); }, []);
   const imageUrl = (image) => image.startsWith('http') ? image : `${IMAGE_BASE_URL}${image}`;
   const patchExercise = (index, updater) => setExercises((current) => current.map((item, itemIndex) => itemIndex === index ? updater(item) : item));
+
 
   async function ensureWorkout() {
     if (workoutId) return workoutId;
@@ -53,6 +61,7 @@ export default function Workout() {
     return data.id;
   }
 
+
   async function getPreviousSetsForExercise(exerciseId) {
     const { data: previousWorkout, error } = await supabase.from('workouts').select('id, ended_at, workout_sets!inner(exercise_id)').eq('user_id', user.id).eq('workout_sets.exercise_id', exerciseId).not('ended_at', 'is', null).order('ended_at', { ascending: false }).limit(1).maybeSingle();
     if (error || !previousWorkout) { if (error) console.error('Previous workout:', error); return {}; }
@@ -61,20 +70,51 @@ export default function Workout() {
     return (sets || []).reduce((result, set) => ({ ...result, [set.set_number]: { weight: set.weight, reps: set.reps } }), {});
   }
 
+
+  async function getPreviousNoteForExercise(exerciseId) {
+    const { data, error } = await supabase
+      .from('exercise_notes')
+      .select('note, updated_at, workouts!inner(user_id)')
+      .eq('workouts.user_id', user.id)
+      .eq('exercise_id', exerciseId)
+      .not('note', 'eq', '')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) { console.error('Previous note:', error); return ''; }
+    return data?.note ?? '';
+  }
+
+
+  async function getExistingNote(workoutIdToCheck, exerciseId) {
+    if (!workoutIdToCheck) return '';
+    const { data, error } = await supabase.from('exercise_notes').select('note').eq('workout_id', workoutIdToCheck).eq('exercise_id', exerciseId).maybeSingle();
+    if (error) { console.error('Load note:', error); return ''; }
+    return data?.note ?? '';
+  }
+
+
   async function addExercise(exercise) {
   const previousSets = await getPreviousSetsForExercise(exercise.id);
+  const note = await getExistingNote(workoutId, exercise.id);
+  const previousNote = note ? '' : await getPreviousNoteForExercise(exercise.id);
+
 
   setExercises((current) => [
     ...current,
     {
       ...exercise,
       previousSets,
+      note,
+      previousNote,
       sets: [createSetFromPrevious(previousSets[1])],
     },
   ]);
 
+
   setShowPicker(false);
 }
+
 
   async function loadRoutines() {
     setRoutinesLoading(true); setRoutineError('');
@@ -83,8 +123,10 @@ export default function Workout() {
     setRoutinesLoading(false);
   }
 
+
   async function openRoutines() { setShowWorkoutMenu(true); await loadRoutines(); }
   function startEmptyWorkout() { resetWorkout(); setName(''); setShowPicker(true); }
+
 
   async function startRoutine(routine) {
     const items = [...(routine.routine_exercises || [])].filter((item) => item.exercises).sort((a, b) => a.position - b.position);
@@ -96,10 +138,14 @@ export default function Workout() {
     const previousSets = await getPreviousSetsForExercise(
       item.exercises.id
     );
+    const previousNote = await getPreviousNoteForExercise(item.exercises.id);
+
 
     return {
       ...item.exercises,
       previousSets,
+      note: '',
+      previousNote,
       sets: Array.from(
         { length: item.default_sets },
         (_, index) => createSetFromPrevious(previousSets[index + 1])
@@ -112,15 +158,24 @@ export default function Workout() {
     finally { setStartingRoutineId(null); }
   }
 
+
   async function removeExercise(index) {
-    const ids = exercises[index].sets.filter((set) => set.dbId).map((set) => set.dbId);
+    const exercise = exercises[index];
+    const ids = exercise.sets.filter((set) => set.dbId).map((set) => set.dbId);
     if (ids.length) { const { error } = await supabase.from('workout_sets').delete().in('id', ids); if (error) return console.error(error); }
+    if (workoutId) {
+      const { error: noteError } = await supabase.from('exercise_notes').delete().eq('workout_id', workoutId).eq('exercise_id', exercise.id);
+      if (noteError) console.error('Delete note:', noteError);
+    }
+    clearTimeout(noteSaveTimers.current[exercise.id]);
+    delete noteSaveTimers.current[exercise.id];
     setExercises((current) => current.filter((_, itemIndex) => itemIndex !== index));
   }
   function addSet(index) {
   patchExercise(index, (exercise) => {
     const nextSetNumber = exercise.sets.length + 1;
     const previousSet = exercise.previousSets?.[nextSetNumber];
+
 
     return {
       ...exercise,
@@ -139,7 +194,27 @@ export default function Workout() {
 
 
 
+
   function updateSet(exerciseIndex, setIndex, field, value) { patchExercise(exerciseIndex, (item) => ({ ...item, sets: item.sets.map((set, index) => index === setIndex ? { ...set, [field]: value } : set) })); }
+
+
+  function updateNote(exerciseIndex, exerciseId, value) {
+    patchExercise(exerciseIndex, (item) => ({ ...item, note: value }));
+
+    clearTimeout(noteSaveTimers.current[exerciseId]);
+    noteSaveTimers.current[exerciseId] = setTimeout(async () => {
+      const currentWorkoutId = await ensureWorkout();
+      if (!currentWorkoutId) return;
+      const { error } = await supabase
+        .from('exercise_notes')
+        .upsert(
+          { workout_id: currentWorkoutId, exercise_id: exerciseId, user_id: user.id, note: value, updated_at: new Date() },
+          { onConflict: 'workout_id,exercise_id' }
+        );
+      if (error) console.error('Save note:', error);
+    }, NOTE_SAVE_DEBOUNCE_MS);
+  }
+
 
   async function toggleSetDone(exerciseIndex, setIndex) {
     const exercise = exercises[exerciseIndex]; const set = exercise.sets[setIndex];
@@ -160,13 +235,16 @@ export default function Workout() {
         patchExercise(exerciseIndex, (item) => ({ ...item, sets: item.sets.map((current, index) => index === setIndex ? { ...current, done: false, saving: false, dbId: null, isPR: false } : current) }));
       }
 
+
       startRestTimer(exercise.id);
+
 
       return;
     }
     if (set.dbId) { const { error } = await supabase.from('workout_sets').delete().eq('id', set.dbId); if (error) return console.error(error); }
     patchExercise(exerciseIndex, (item) => ({ ...item, sets: item.sets.map((current, index) => index === setIndex ? { ...current, done: false, saving: false, dbId: null, isPR: false } : current) }));
   }
+
 
  async function finishWorkout() {
     if (!workoutId) return resetWorkout();
@@ -178,6 +256,7 @@ export default function Workout() {
     const { error: updateError } = await supabase.from('workouts').update({ name, ended_at: completedAt, sets: totalSets, volume: totalVolume, duration: minutes }).eq('id', workoutId);
     if (updateError) return console.error(updateError);
 
+
     const { error: postError } = await supabase.from('workout_posts').insert({
       workout_id: workoutId,
       user_id: user.id,
@@ -186,16 +265,19 @@ export default function Workout() {
     });
     if (postError) console.error('Failed to create workout post:', postError);
 
+
     const ids = [...new Set((workout.workout_sets || []).map((set) => set.exercises?.id).filter(Boolean))];
     let ranks = [];
     if (ids.length) { const { data } = await supabase.from('exercise_ranks').select('exercise_id, rank, best_1rm, exercises(name)').eq('user_id', user.id).in('exercise_id', ids); ranks = data || []; }
     setSummary({ totalSets, totalVolume, minutes, ranks }); resetWorkout();
   }
 
+
   async function deleteWorkout() {
-    if (workoutId) { const { error: setsError } = await supabase.from('workout_sets').delete().eq('workout_id', workoutId); if (setsError) return console.error(setsError); const { error } = await supabase.from('workouts').delete().eq('id', workoutId); if (error) return console.error(error); }
+    if (workoutId) { const { error: setsError } = await supabase.from('workout_sets').delete().eq('workout_id', workoutId); if (setsError) return console.error(setsError); const { error: notesError } = await supabase.from('exercise_notes').delete().eq('workout_id', workoutId); if (notesError) console.error(notesError); const { error } = await supabase.from('workouts').delete().eq('id', workoutId); if (error) return console.error(error); }
     resetWorkout(); setConfirmingDelete(false);
   }
+
 
   if (authLoading || !user) return <div className="workout-loading">Loading...</div>;
   const workoutStarted = Boolean(workoutId);
@@ -215,7 +297,20 @@ export default function Workout() {
       <section className="workout-exercises">{exercises.map((exercise, exerciseIndex) => <article className="workout-card" key={exercise.id}><header className="workout-card__header"><div className="workout-card__exercise-info">{exercise.images?.[0] && <img className="workout-card__thumbnail" src={imageUrl(exercise.images[0])} alt={exercise.name} />}<span className="workout-card__exercise-name">{exercise.name}</span><ExerciseRankBadge exerciseId={exercise.id} userId={user.id} /><button className="icon-button icon-button--delete" onClick={() => removeExercise(exerciseIndex)}><Trash size={16} /></button>{restTimer.startedAt &&
       restTimer.exerciseId === exercise.id && (
         <RestTimer startedAt={restTimer.startedAt} />
-      )}</div></header><div className="set-table"><div className="set-table__header"><span>Set</span><span>Previous</span><span>Weight</span><span>Reps</span><span /><span /><span /></div>{exercise.sets.map((set, setIndex) => { const previous = exercise.previousSets?.[setIndex + 1]; return <div className={`set-row ${set.done ? 'set-row--completed' : ''}`} key={set.dbId ?? `local-${setIndex}`}><span className="set-row__number">{setIndex + 1}</span><span className={`set-row__previous ${previous ? '' : 'set-row__previous--empty'}`}>{previous ? `${previous.weight} × ${previous.reps}` : '—'}</span><input className="set-row__input" type="number" step="0.5" placeholder={previous ? previous.weight : 'weight'} value={set.weight} disabled={set.done} onChange={(event) => updateSet(exerciseIndex, setIndex, 'weight', event.target.value)} /><input className="set-row__input" type="number" step="1" placeholder={previous ? previous.reps : 'reps'} value={set.reps} disabled={set.done} onChange={(event) => updateSet(exerciseIndex, setIndex, 'reps', event.target.value)} /><span className="set-row__pr-icon">{set.isPR ? '🥇' : ''}</span><button className={`set-row__check-button ${set.done ? 'set-row__check-button--active' : ''}`} onClick={() => toggleSetDone(exerciseIndex, setIndex)} disabled={set.saving}>{set.saving ? '…' : '✓'}</button><button className="set-row__delete-button" onClick={() => deleteSet(exerciseIndex, setIndex)}>✕</button></div>; })}</div><button className="add-set-button" onClick={() => addSet(exerciseIndex)}>+ Add Set</button></article>)}</section>
+      )}</div></header>
+      <div className="workout-card__note">
+        <textarea
+          className="workout-card__note-input"
+          placeholder="Add notes here..."
+          value={exercise.note ?? ''}
+          onChange={(event) => updateNote(exerciseIndex, exercise.id, event.target.value)}
+          rows={1}
+        />
+        {!exercise.note && exercise.previousNote && (
+          <p className="workout-card__note-previous">Last time: {exercise.previousNote}</p>
+        )}
+      </div>
+      <div className="set-table"><div className="set-table__header"><span>Set</span><span>Previous</span><span>Weight</span><span>Reps</span><span /><span /><span /></div>{exercise.sets.map((set, setIndex) => { const previous = exercise.previousSets?.[setIndex + 1]; return <div className={`set-row ${set.done ? 'set-row--completed' : ''}`} key={set.dbId ?? `local-${setIndex}`}><span className="set-row__number">{setIndex + 1}</span><span className={`set-row__previous ${previous ? '' : 'set-row__previous--empty'}`}>{previous ? `${previous.weight} × ${previous.reps}` : '—'}</span><input className="set-row__input" type="number" step="0.5" placeholder={previous ? previous.weight : 'weight'} value={set.weight} disabled={set.done} onChange={(event) => updateSet(exerciseIndex, setIndex, 'weight', event.target.value)} /><input className="set-row__input" type="number" step="1" placeholder={previous ? previous.reps : 'reps'} value={set.reps} disabled={set.done} onChange={(event) => updateSet(exerciseIndex, setIndex, 'reps', event.target.value)} /><span className="set-row__pr-icon">{set.isPR ? '🥇' : ''}</span><button className={`set-row__check-button ${set.done ? 'set-row__check-button--active' : ''}`} onClick={() => toggleSetDone(exerciseIndex, setIndex)} disabled={set.saving}>{set.saving ? '…' : '✓'}</button><button className="set-row__delete-button" onClick={() => deleteSet(exerciseIndex, setIndex)}>✕</button></div>; })}</div><button className="add-set-button" onClick={() => addSet(exerciseIndex)}>+ Add Set</button></article>)}</section>
       <button className="add-exercise-button" onClick={() => setShowPicker(true)}>+ Add Exercise</button><div className="workout-actions"><button className="finish-workout-button" onClick={() => { setEndedAt(new Date()); setFinished(true); }}>Finish Workout</button><button className="delete-workout-button" onClick={() => setConfirmingDelete(true)}>Discard</button></div>
     </>}
     <div className="workout-bottom-spacer" />
@@ -236,6 +331,7 @@ export default function Workout() {
           <h2>Your training plans</h2>
         </div>
 
+
         <button
           className="icon-button"
           onClick={() => setShowWorkoutMenu(false)}
@@ -243,6 +339,7 @@ export default function Workout() {
           <X size={20} />
         </button>
       </header>
+
 
       <button
         className="workout-choice-card"
@@ -253,11 +350,13 @@ export default function Workout() {
       >
         <ListPlus size={21} />
 
+
         <span>
           <strong>Create routine</strong>
           <small>Build a repeatable workout</small>
         </span>
       </button>
+
 
       <button
         className="workout-choice-card"
@@ -268,16 +367,19 @@ export default function Workout() {
       >
         <Compass size={21} />
 
+
         <span>
           <strong>Explore routines</strong>
           <small>Discover public routines soon</small>
         </span>
       </button>
 
+
       <div className="workout-picker-dialog__routines-header">
         <span>Saved routines</span>
         <span>{routines.length}</span>
       </div>
+
 
       {routinesLoading && (
         <p className="workout-picker-dialog__status">
@@ -285,11 +387,13 @@ export default function Workout() {
         </p>
       )}
 
+
       {routineError && (
         <p className="workout-picker-dialog__error">
           {routineError}
         </p>
       )}
+
 
       {!routinesLoading && !routineError && !routines.length && (
         <p className="workout-picker-dialog__status">
@@ -297,15 +401,18 @@ export default function Workout() {
         </p>
       )}
 
+
       <div className="workout-picker-dialog__routine-list">
         {routines.map((routine) => {
           const exerciseCount = routine.routine_exercises?.length || 0;
+
 
           const setCount =
             routine.routine_exercises?.reduce(
               (total, item) => total + item.default_sets,
               0
             ) || 0;
+
 
           return (
             <button
@@ -320,6 +427,7 @@ export default function Workout() {
                   {exerciseCount} exercises · {setCount} sets
                 </small>
               </span>
+
 
               <span className="saved-routine-card__start">
                 {startingRoutineId === routine.id
