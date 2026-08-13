@@ -238,7 +238,8 @@ export default function MuscleRanks() {
   const { profile } = useProfile();
   const { muscleRanks, loading } = useMuscleRanks(
     user?.id,
-    profile?.weight
+    profile?.weight,
+    profile?.gender
   );
   const ranks = muscleRanks ?? [];
 
