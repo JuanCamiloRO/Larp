@@ -1,0 +1,40 @@
+.ranking-page {
+    min-height: 100vh;
+    background: #000;
+  }
+  
+  .ranking-tabs {
+    display: flex;
+    gap: 2px;
+    background: #1c1c1e;
+    border-radius: 14px;
+    padding: 4px;
+    margin: 16px 16px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+  
+  .ranking-tab {
+    flex: 1;
+    padding: 11px 0;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .ranking-tab.active {
+    background: linear-gradient(180deg, #ff3b30 0%, #e62e24 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3);
+  }
+  
+  .ranking-tab:active {
+    opacity: 0.85;
+  }

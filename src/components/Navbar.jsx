@@ -1,13 +1,10 @@
-// components/NavBar.jsx
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import {
   Home,
   PlusCircle,
   Trophy,
-  TrendingUp,
-  Medal,
   Hamburger,
-  Settings,
+  TrendingUp,
 } from 'lucide-react';
 import { useWorkoutContext } from '../context/WorkoutContext.jsx';
 
@@ -38,35 +35,27 @@ export default function NavBar() {
           <span>Home</span>
         </NavLink>
 
-        <NavLink to="/dashboard" className="nav-item">
-          <TrendingUp size={24} />
-          <span>Dashboard</span>
+        <NavLink to="/ranking" className="nav-item">
+          <Trophy size={24} />
+          <span>Ranking</span>
+        </NavLink>
+
+        <NavLink to="/workout" className="nav-center-wrap">
+          <div className="nav-center-btn">
+            <PlusCircle size={22} />
+          </div>
         </NavLink>
 
         <NavLink to="/nutrition" className="nav-item">
           <Hamburger size={24} />
           <span>Nutrition</span>
         </NavLink>
-        
-        <NavLink to="/workout" className="nav-item nav-center">
-          <PlusCircle size={32} />
-        </NavLink>
 
-       <NavLink to="/leaderboard" className="nav-item">
-          <Trophy size={24} />
-          <span>Leaderboard</span>
+        <NavLink to="/dashboard" className="nav-item">
+          <TrendingUp size={24} />
+          <span>Dashboard</span>
         </NavLink>
-
-        <NavLink to="/ranks" className="nav-item">
-          <Medal size={24} />
-          <span>Ranks</span>
-        </NavLink>
-      
-      <NavLink to="/settings" className="nav-item">
-          <Settings size={24} />
-          <span>Settings</span>
-        </NavLink>
-        </nav>
+      </nav>
     </>
   );
 }

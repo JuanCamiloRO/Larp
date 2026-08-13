@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { ArrowLeft, ChevronRight, ScanLine } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ScanLine, Settings } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useWorkout } from '../hooks/useWorkout';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import ExerciseDisplay from '../components/ExerciseDisplay';
 import MuscleHeatmap from '../components/MuscleHeatmap';
@@ -39,8 +39,7 @@ export default function Dashboard() {
   if (profileLoading) return <DashboardSkeleton />;
   if (profileError) return <main className="public-profile-page dashboard-home page-transition"><div className="dashboard-error"><h1>Couldn’t load your profile</h1><p>{profileError}</p></div></main>;
   return <main className="public-profile-page dashboard-home page-transition">
-    
-    <section className="weight-progress"><div className="public-profile-top"><img className="public-profile-avatar" src={profile?.avatar_url || '/default-avatar.png'} alt={profile?.username || 'Your avatar'} onError={(event) => { event.currentTarget.src = '/default-avatar.png'; }} /><div className="public-profile-stats"><div className="public-profile-stat"><span className="public-profile-stat__number">{workoutsLoading ? '—' : workoutCount}</span><span className="public-profile-stat__label">Workouts</span></div><div className="public-profile-stat"><span className="public-profile-stat__number" onClick={() => setShowFollowers(true)}>{profile?.followers ?? 0}</span><span className="public-profile-stat__label">Followers</span></div><div className="public-profile-stat"><span className="public-profile-stat__number" onClick={()=> setShowFollowing(true)}>{profile?.following ?? 0}</span><span className="public-profile-stat__label">Following</span></div></div></div><div className="public-profile-info"><h1 className="public-profile-username">{profile?.username || 'Your profile'}</h1>{profile?.bio && <p className="public-profile-bio">{profile.bio}</p>}</div></section>
+    <section className="weight-progress"><Link to="/settings" className="dashboard-settings-btn" aria-label="Settings"><Settings size={18} strokeWidth={2} /></Link><div className="public-profile-top"><img className="public-profile-avatar" src={profile?.avatar_url || '/default-avatar.png'} alt={profile?.username || 'Your avatar'} onError={(event) => { event.currentTarget.src = '/default-avatar.png'; }} /><div className="public-profile-stats"><div className="public-profile-stat"><span className="public-profile-stat__number">{workoutsLoading ? '—' : workoutCount}</span><span className="public-profile-stat__label">Workouts</span></div><div className="public-profile-stat"><span className="public-profile-stat__number" onClick={() => setShowFollowers(true)}>{profile?.followers ?? 0}</span><span className="public-profile-stat__label">Followers</span></div><div className="public-profile-stat"><span className="public-profile-stat__number" onClick={()=> setShowFollowing(true)}>{profile?.following ?? 0}</span><span className="public-profile-stat__label">Following</span></div></div></div><div className="public-profile-info"><h1 className="public-profile-username">{profile?.username || 'Your profile'}</h1>{profile?.bio && <p className="public-profile-bio">{profile.bio}</p>}</div></section>
     {showFollowers && <ViewFollowers onClose={() => setShowFollowers(false)} userId={profile?.id} />}{showFollowing && <ViewFollowed onClose={() => setShowFollowing(false)} userId={profile?.id} />}
     <section className="weight-progress"><header className="weight-progress__header"><p>Muscle Activity</p></header><MuscleHeatmap userId={user?.id} /></section>
     <section><WorkoutCalendar userId={user?.id} /></section>
