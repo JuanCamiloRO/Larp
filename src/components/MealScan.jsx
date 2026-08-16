@@ -19,21 +19,6 @@ function fileToBase64(file) {
   });
 }
 
-function handleItemChange(index, field, value) {
-    setMeal((current) => ({
-      ...current,
-      items: current.items.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, [field]: value } : item
-      ),
-    }));
-  }
-
-  function handleRemoveItem(index) {
-    setMeal((current) => ({
-      ...current,
-      items: current.items.filter((_, itemIndex) => itemIndex !== index),
-    }));
-  }
 
 export default function MealScan({
   defaultMeal = '',
@@ -105,12 +90,27 @@ export default function MealScan({
       }
 
       if (!data || !Array.isArray(data.items)) {
-        throw new Error(
-          'Meal scan returned an invalid result'
-        );
-      }
+  throw new Error(
+    'Meal scan returned an invalid result'
+  );
+}
 
-      setMeal(data);
+const itemsWithRatios = data.items.map((item) => {
+  const grams = Number(item.grams) || 0;
+  const safeGrams = grams > 0 ? grams : 1; // avoid divide-by-zero; treated as 1g baseline
+
+  return {
+    ...item,
+    perGram: {
+      calories: Number(item.calories || 0) / safeGrams,
+      protein: Number(item.protein || 0) / safeGrams,
+      carbs: Number(item.carbs || 0) / safeGrams,
+      fat: Number(item.fat || 0) / safeGrams,
+    },
+  };
+});
+
+setMeal({ ...data, items: itemsWithRatios });
     } catch (scanError) {
       console.error('Meal scan failed:', scanError);
 
@@ -162,6 +162,53 @@ export default function MealScan({
         0
       )
     : 0;
+
+  function handleItemChange(index, field, value) {
+  setMeal((current) => ({
+    ...current,
+    items: current.items.map((item, itemIndex) => {
+      if (itemIndex !== index) return item;
+
+      if (field === 'grams') {
+        const grams = Number(value) || 0;
+        const ratio = item.perGram;
+
+        if (!ratio) return { ...item, grams: value };
+
+        return {
+          ...item,
+          grams: value,
+          calories: Math.round(ratio.calories * grams),
+          protein: Math.round(ratio.protein * grams * 10) / 10,
+          carbs: Math.round(ratio.carbs * grams * 10) / 10,
+          fat: Math.round(ratio.fat * grams * 10) / 10,
+        };
+      }
+
+      // Manual macro edit: apply it, and rebase the per-gram ratio
+      // so future grams changes scale from this corrected value.
+      const updatedItem = { ...item, [field]: value };
+      const grams = Number(updatedItem.grams) || 0;
+      const safeGrams = grams > 0 ? grams : 1;
+
+      return {
+        ...updatedItem,
+        perGram: {
+          ...item.perGram,
+          [field]: Number(value || 0) / safeGrams,
+        },
+      };
+    }),
+  }));
+}
+
+  function handleRemoveItem(index) {
+    setMeal((current) => ({
+      ...current,
+      items: current.items.filter((_, itemIndex) => itemIndex !== index),
+    }));
+  }
+
 
   return (
     <div className="meal-scan-backdrop">

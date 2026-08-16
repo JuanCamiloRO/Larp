@@ -783,3 +783,61 @@ a.workout-card__username:hover {
     animation: none;
   }
 }
+
+.workout-comment-thread {
+  display: flex;
+  flex-direction: column;
+}
+
+.workout-comment-replies {
+  margin-left: 40px;
+  padding-left: 12px;
+  border-left: 2px solid var(--border, #eee);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.workout-comment--reply {
+  padding-top: 8px;
+}
+
+.workout-comment-avatar--small {
+  width: 26px;
+  height: 26px;
+  font-size: 0.75rem;
+}
+
+.workout-comment-reply-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted, #888);
+  cursor: pointer;
+}
+
+.workout-comment-reply-button:hover {
+  color: var(--accent, #6c5ce7);
+}
+
+.workout-comments-replying-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  background: var(--surface-muted, #282727);
+  border-radius: 8px;
+  margin: 0 12px 6px;
+}
+
+.workout-comments-replying-banner button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted, #888);
+}
