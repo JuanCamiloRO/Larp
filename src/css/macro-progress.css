@@ -1,0 +1,55 @@
+.macro-progress {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  margin-top: 14px;
+}
+
+.macro-bar-row {
+  display: grid;
+  gap: 5px;
+}
+
+.macro-bar-labels {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.macro-bar-name {
+  color: #d0d0d5;
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.macro-bar-values {
+  color: #8e8e93;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.macro-bar-track {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: #2c2c2e;
+  overflow: hidden;
+}
+
+.macro-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width .35s ease;
+}
+
+.macro-bar--protein { background: #ff6961; }
+.macro-bar--carbs   { background: #ffb340; }
+.macro-bar--fat     { background: #ff58f4; }
+
+.macro-bar-fill.is-over {
+  background: #ff3b30;
+  box-shadow: 0 0 8px rgba(255, 59, 48, .5);
+}

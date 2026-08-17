@@ -4,15 +4,19 @@ import { useAuth } from '../hooks/useAuth';
 import { useFoodLogs, MEAL_TYPES } from '../hooks/useFoodLogs';
 import { useCalorieGoal } from '../hooks/useCalorieGoal';
 import { useRecentFoods } from '../hooks/useRecentFoods';
-import { ScanLine, ArrowLeft } from 'lucide-react';
+import { ScanLine, ArrowLeft, Plus, X } from 'lucide-react';
+import { macroGoalsInGrams } from '../lib/macros';
 import MealScan from '../components/MealScan';
 import FoodSearch from '../components/FoodSearch';
 import LogFoodModal from '../components/LogFoodModal';
 import CalorieRing from '../components/CalorieRing';
 import CalorieGoalEditor from '../components/CalorieGoalEditor';
+import MacroProgress from '../components/MacroProgress';
+import MacroGoalModal from '../components/MacroGoalModal';
 import RecentFoods from '../components/RecentFoods';
 import ScanBarcodeButton from '../components/ScanBarcodeButton';
 import WeightProgress from '../components/WeightProgress';
+import '../css/nutrition.css';
 
 const MEAL_LABELS = {
   breakfast: 'Breakfast',
@@ -38,18 +42,17 @@ export default function Nutrition() {
   const dateStr = formatDateStr(currentDate);
   const navigate = useNavigate();
 
-  // 'logs' (flat list) is needed below to key the recent-foods refetch,
-  // so it must be destructured here alongside the grouped/aggregated data.
   const { logs, logsByMeal, totals, loading, addLog, addLogEntry, deleteLog } = useFoodLogs(user?.id, dateStr);
-  const { goal, updateGoal } = useCalorieGoal(user?.id);
+  const { goal, updateGoal, macros, updateMacroGoals } = useCalorieGoal(user?.id);
   const [searchOpenForMeal, setSearchOpenForMeal] = useState(null);
   const { recentFoods, loading: recentLoading, refetchRecent } = useRecentFoods(
-  user?.id,
-  logs.length,
-  searchOpenForMeal
-);
+    user?.id,
+    logs.length,
+    searchOpenForMeal
+  );
   const [pendingFood, setPendingFood] = useState(null);
   const [mealScanOpen, setMealScanOpen] = useState(false);
+  const [macroModalOpen, setMacroModalOpen] = useState(false);
 
   function changeDay(offset) {
     const next = new Date(currentDate);
@@ -69,12 +72,9 @@ export default function Nutrition() {
   }
 
   function mealCalories(logs) {
-  return logs.reduce((sum, log) => sum + (log.calories || 0), 0);
-}
+    return logs.reduce((sum, log) => sum + (log.calories || 0), 0);
+  }
 
-  // Meal scan already returns absolute totals for a (possibly multi-item)
-  // plate rather than a single per-100g food, so it goes through
-  // addLogEntry directly instead of addLog's per-100g scaling path.
   async function handleConfirmScan(meal, mealType) {
     const mealTotals = meal.items.reduce(
       (total, item) => ({
@@ -97,123 +97,158 @@ export default function Nutrition() {
     setMealScanOpen(false);
   }
 
+  function openMealScan(meal) {
+    setSearchOpenForMeal(meal);
+    setMealScanOpen(true);
+  }
+
+  function toggleFoodSearch(meal) {
+    setSearchOpenForMeal(searchOpenForMeal === meal ? null : meal);
+  }
 
   return (
     <div className="page-transition">
-    <div>
-      <header className="settings-header" style={{ marginBottom: '12px' }}>
-        <button
-          type="button"
-          className="settings-header__back"
-          onClick={() => navigate(-1)}
-          aria-label="Go back"
-        >
-          <ArrowLeft size={21} />
-        </button>
-        <div>
-        <p>Nutrition</p>
-        <h1>Log your meals</h1>
-        </div>
-      </header>
+      <div>
+        <header className="settings-header" style={{ marginBottom: '12px' }}>
+          <button
+            type="button"
+            className="settings-header__back"
+            onClick={() => navigate(-1)}
+            aria-label="Go back"
+          >
+            <ArrowLeft size={21} />
+          </button>
+          <div>
+            <p>Nutrition</p>
+            <h1>Log your meals</h1>
+          </div>
+        </header>
       </div>
 
       <div style={{ padding: '16px' }}>
-      <div className="date-nav">
-        <button className="date-nav-btn" onClick={() => changeDay(-1)}>‹</button>
-        <span className="date-nav-label">{formatDisplayDate(currentDate)}</span>
-        <button className="date-nav-btn" onClick={() => changeDay(1)}>›</button>
-      </div>
-
-      <div className="weight-progress">
-        <CalorieRing consumed={totals.calories} goal={goal} />
-        <div className="daily-totals-macros" style={{ marginTop: '12px' }}>
-          <span className="subtle">Protein: {Math.round(totals.protein)}g</span>
-          <span className="subtle">Carbs: {Math.round(totals.carbs)}g</span>
-          <span className="subtle">Fat: {Math.round(totals.fat)}g</span>
+        <div className="date-nav">
+          <button className="date-nav-btn" onClick={() => changeDay(-1)}>‹</button>
+          <span className="date-nav-label">{formatDisplayDate(currentDate)}</span>
+          <button className="date-nav-btn" onClick={() => changeDay(1)}>›</button>
         </div>
-        <CalorieGoalEditor goal={goal} onUpdateGoal={updateGoal} />
-      </div>
+
+        <div className="weight-progress">
+          <CalorieRing consumed={totals.calories} goal={goal} />
+
+          <MacroProgress
+            consumed={{ protein: totals.protein, carbs: totals.carbs, fat: totals.fat }}
+            goals={macroGoalsInGrams(macros)}
+          />
 
 
-{mealScanOpen && (
-  <MealScan
-    defaultMeal={searchOpenForMeal || 'lunch'}
-    onConfirm={handleConfirmScan}
-    onClose={() => setMealScanOpen(false)}
-  />
-)}
-
-
-      {loading && <p className="subtle" style={{ marginTop: '16px' }}>Loading diary...</p>}
-
-      {!loading && MEAL_TYPES.map((meal) => (
-        <div key={meal} className="meal-section">
-          <div className="meal-section-header">
-            <span className="follow-name">{MEAL_LABELS[meal]}</span>
-            <span className="subtle">{Math.round(mealCalories(logsByMeal[meal]))} kcal</span>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
             <button
-              className="meal-add-btn"
-              onClick={() => setSearchOpenForMeal(searchOpenForMeal === meal ? null : meal)}
+              type="button"
+              className="primary-btn"
+              onClick={() => setMacroModalOpen(true)}
             >
-              {searchOpenForMeal === meal ? 'Close' : '+ Add food'}
+             Edit Nutrition Goals 
             </button>
           </div>
+        </div>
 
-          {searchOpenForMeal === meal && (
-            <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <FoodSearch onSelectFood={handleSelectFood} />
-
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    type="button"
-                    className="meal-scan-open-btn"
-                    onClick={() => setMealScanOpen(true)}
-                  >
-                    <ScanLine size={24} />
-                    Scan a meal
-                  </button>
-
-                  <ScanBarcodeButton onFoodFound={(food) => setPendingFood(food)} />
-                </div>
-
-                <RecentFoods recentFoods={recentFoods} loading={recentLoading} onSelectFood={handleSelectFood}/>
-            </div>
+        {mealScanOpen && (
+          <MealScan
+            defaultMeal={searchOpenForMeal || 'lunch'}
+            onConfirm={handleConfirmScan}
+            onClose={() => setMealScanOpen(false)}
+          />
         )}
 
-          {logsByMeal[meal].length === 0 ? (
-            <p className="subtle" style={{ fontSize: '12px', padding: '4px 0' }}>No foods logged.</p>
-          ) : (
-            <div className="meal-food-list">
-              {logsByMeal[meal].map((log) => (
-                <div key={log.id} className="meal-food-row">
-                  <div className="food-search-info">
-                    <span className="follow-name">{log.food_name}</span>
-                    <span className="follow-handle">{log.grams}g</span>
-                  </div>
-                  <span className="subtle">{Math.round(log.calories || 0)} kcal</span>
-                  <button className="meal-food-delete" onClick={() => deleteLog(log.id)}>✕</button>
-                </div>
-              ))}
+        {macroModalOpen && (
+          <MacroGoalModal
+            calorieGoal={goal}
+            initialGoal={macros}
+            onSave={updateMacroGoals}
+            onClose={() => setMacroModalOpen(false)}
+          />
+        )}
+
+        {loading && <p className="subtle" style={{ marginTop: '16px' }}>Loading diary...</p>}
+
+        {!loading && MEAL_TYPES.map((meal) => (
+          <div key={meal} className="meal-section">
+            <div className="meal-section-header">
+              <div className="meal-section-title">
+                <span className="follow-name">{MEAL_LABELS[meal]}</span>
+                <span className="meal-kcal">{Math.round(mealCalories(logsByMeal[meal]))} kcal</span>
+              </div>
+
+              <div className="meal-section-actions">
+                <span onClickCapture={() => setSearchOpenForMeal(meal)}>
+                  <ScanBarcodeButton
+                    className="meal-icon-btn"
+                    iconOnly
+                    onFoodFound={(food) => setPendingFood(food)}
+                  />
+                </span>
+
+                <button
+                  type="button"
+                  className="meal-icon-btn"
+                  aria-label={`Scan a meal for ${MEAL_LABELS[meal]}`}
+                  onClick={() => openMealScan(meal)}
+                >
+                  <ScanLine size={17} />
+                </button>
+
+                <button
+                  type="button"
+                  className={`meal-icon-btn meal-icon-btn--add${searchOpenForMeal === meal ? ' is-active' : ''}`}
+                  aria-label={searchOpenForMeal === meal ? 'Close add food' : `Add food to ${MEAL_LABELS[meal]}`}
+                  onClick={() => toggleFoodSearch(meal)}
+                >
+                  {searchOpenForMeal === meal ? <X size={17} /> : <Plus size={17} />}
+                </button>
+              </div>
             </div>
-          )}
-        </div>
-      ))}
 
-      {pendingFood && (
-        <LogFoodModal
-          food={pendingFood}
-          defaultMeal={searchOpenForMeal}
-          onConfirm={handleConfirmLog}
-          onCancel={() => setPendingFood(null)}
-        />
-      )}
+            {searchOpenForMeal === meal && (
+              <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <FoodSearch onSelectFood={handleSelectFood} />
+                <RecentFoods recentFoods={recentFoods} loading={recentLoading} onSelectFood={handleSelectFood} />
+              </div>
+            )}
 
-      <WeightProgress userId={user?.id}  />
+            {logsByMeal[meal].length === 0 ? (
+              <p className="subtle" style={{ fontSize: '12px', padding: '4px 0' }}>No foods logged.</p>
+            ) : (
+              <div className="meal-food-list">
+                {logsByMeal[meal].map((log) => (
+                  <div key={log.id} className="meal-food-row">
+                    <div className="food-search-info">
+                      <span className="follow-name">{log.food_name}</span>
+                      <span className="follow-handle">{log.grams}g</span>
+                    </div>
+                    <span className="subtle">{Math.round(log.calories || 0)} kcal</span>
+                    <button className="meal-food-delete" onClick={() => deleteLog(log.id)}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
 
-      <p className="subtle" style={{ marginTop: '24px', fontSize: '11px' }}>
-        Nutrition data from Open Food Facts, available under the Open Database License.
-      </p>
-    </div>
+        {pendingFood && (
+          <LogFoodModal
+            food={pendingFood}
+            defaultMeal={searchOpenForMeal}
+            onConfirm={handleConfirmLog}
+            onCancel={() => setPendingFood(null)}
+          />
+        )}
+
+        <WeightProgress userId={user?.id} />
+
+        <p className="subtle" style={{ marginTop: '24px', fontSize: '11px' }}>
+          Nutrition data from Open Food Facts, available under the Open Database License.
+        </p>
+      </div>
     </div>
   );
 }

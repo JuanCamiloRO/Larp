@@ -1,9 +1,10 @@
 // components/BarcodeScanner.jsx
 
 import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
 import { useFoodLookup } from '../hooks/useFoodLookup';
-
+import '../css/scanner.css';
 
 export default function BarcodeScanner({ onFoodFound, onCancel }) {
   const viewportRef = useRef(null);
@@ -11,7 +12,6 @@ export default function BarcodeScanner({ onFoodFound, onCancel }) {
   const { lookupBarcode, loading, error } = useFoodLookup();
   const [status, setStatus] = useState('Point your camera at a barcode');
   const hasHandledScan = useRef(false);
-  
 
   useEffect(() => {
     startScan(viewportRef.current, handleDetected);
@@ -46,9 +46,13 @@ export default function BarcodeScanner({ onFoodFound, onCancel }) {
 
   return (
     <div className="scanner-overlay">
-      <button className="btn-secondary scanner-cancel-btn" onClick={handleCancel}>
-        Cancel
-      </button>
+      <header className="scanner-topbar">
+        <button className="scanner-back" onClick={handleCancel} aria-label="Go back">
+          <ArrowLeft size={20} />
+        </button>
+        <h1>Scan a Barcode</h1>
+        <span aria-hidden="true" />
+      </header>
 
       <div className="scanner-viewport" ref={viewportRef}>
         <div className="scanner-frame">

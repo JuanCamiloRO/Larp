@@ -6,7 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import '../css/profile.css';
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5MB
-const AVATAR_PATH_PREFIX = 'avatars';
+const AVATAR_PATH_PREFIX = 'profile-avatars-public';
 const R2_PUBLIC_AVATAR_URL = import.meta.env.VITE_R2_PUBLIC_AVATAR_URL;
 
 function publicAvatarUrl(key) {

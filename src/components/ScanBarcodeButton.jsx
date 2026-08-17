@@ -24,11 +24,10 @@ export default function ScanBarcodeButton({ onFoodFound }) {
     <>
       <button
         type="button"
-        className="btn-secondary scan-barcode-btn"
+        className="meal-icon-btn"
         onClick={() => setIsScannerOpen(true)}
       >
-        <QrCode size={24} strokeWidth={2.5} />
-        <span>Scan Barcode</span>
+        <QrCode size={20} strokeWidth={2.5} />
       </button>
 
       {isScannerOpen && (
