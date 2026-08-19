@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Compass, Dumbbell, ListPlus, Plus, Trash, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Compass, Dumbbell, Layers, ListPlus, Notebook, Plus, Trash, X } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useAuth } from '../hooks/useAuth';
 import { usePrograms } from '../hooks/usePrograms';
@@ -34,7 +34,8 @@ export default function Workout() {
   const [showPicker, setShowPicker] = useState(false);
   const [showWorkoutMenu, setShowWorkoutMenu] = useState(false);
   const [routines, setRoutines] = useState([]);
-  const {programs, loading: programsLoading, error: programsError} = usePrograms(user?.id);
+  const { programs, loading: programsLoading, error: programsError } = usePrograms(user?.id);
+  const [expandedProgramId, setExpandedProgramId] = useState(null);
   const [routinesLoading, setRoutinesLoading] = useState(false);
   const [startingRoutineId, setStartingRoutineId] = useState(null);
   const [routineError, setRoutineError] = useState('');
@@ -126,34 +127,64 @@ export default function Workout() {
 
   async function openRoutines() { setShowWorkoutMenu(true); await loadRoutines(); }
   function startEmptyWorkout() { resetWorkout(); setName(''); setShowPicker(true); }
+  function toggleProgram(programId) { setExpandedProgramId((current) => (current === programId ? null : programId)); }
 
 
+  // Saved routines already arrive fully loaded (routine_exercises -> exercises(*)),
+  // but a routine reached via a program's day list only has { id, name, is_public } —
+  // usePrograms doesn't fetch exercises. Detect that case and fetch the full routine
+  // before starting, so this one function works for both entry points.
   async function startRoutine(routine) {
-    const items = [...(routine.routine_exercises || [])].filter((item) => item.exercises).sort((a, b) => a.position - b.position);
-    if (!items.length) return setRoutineError('This routine has no exercises yet.');
-    setStartingRoutineId(routine.id); setRoutineError('');
+    setStartingRoutineId(routine.id);
+    setRoutineError('');
+
+    let fullRoutine = routine;
+    const hasExerciseData = (routine.routine_exercises || []).some(
+      (item) => item.exercises && Object.keys(item.exercises).length > 1
+    );
+
+    if (!hasExerciseData) {
+      const { data, error } = await supabase
+        .from('routines')
+        .select('id, name, routine_exercises(position, default_sets, exercises(*))')
+        .eq('id', routine.id)
+        .single();
+
+      if (error || !data) {
+        console.error('Load routine for start:', error);
+        setRoutineError('Could not load this routine.');
+        setStartingRoutineId(null);
+        return;
+      }
+      fullRoutine = data;
+    }
+
+    const items = [...(fullRoutine.routine_exercises || [])].filter((item) => item.exercises).sort((a, b) => a.position - b.position);
+    if (!items.length) {
+      setRoutineError('This routine has no exercises yet.');
+      setStartingRoutineId(null);
+      return;
+    }
+
     try {
       const nextExercises = await Promise.all(
-  items.map(async (item) => {
-    const previousSets = await getPreviousSetsForExercise(
-      item.exercises.id
-    );
-    const previousNote = await getPreviousNoteForExercise(item.exercises.id);
+        items.map(async (item) => {
+          const previousSets = await getPreviousSetsForExercise(item.exercises.id);
+          const previousNote = await getPreviousNoteForExercise(item.exercises.id);
 
-
-    return {
-      ...item.exercises,
-      previousSets,
-      note: '',
-      previousNote,
-      sets: Array.from(
-        { length: item.default_sets },
-        (_, index) => createSetFromPrevious(previousSets[index + 1])
-      ),
-    };
-  })
-);
-      resetWorkout(); setName(routine.name); setStartedAt(new Date()); setExercises(nextExercises); setShowWorkoutMenu(false);
+          return {
+            ...item.exercises,
+            previousSets,
+            note: '',
+            previousNote,
+            sets: Array.from(
+              { length: item.default_sets },
+              (_, index) => createSetFromPrevious(previousSets[index + 1])
+            ),
+          };
+        })
+      );
+      resetWorkout(); setName(fullRoutine.name); setStartedAt(new Date()); setExercises(nextExercises); setShowWorkoutMenu(false);
     } catch (error) { console.error('Start routine:', error); setRoutineError('Could not start this routine.'); }
     finally { setStartingRoutineId(null); }
   }
@@ -370,7 +401,23 @@ export default function Workout() {
 
         <span>
           <strong>Explore routines</strong>
-          <small>Discover public routines soon</small>
+          <small>Discover public routines</small>
+        </span>
+      </button>
+
+      <button
+        className="workout-choice-card"
+        onClick={() => {
+          setShowWorkoutMenu(false);
+          navigate("/programs");
+        }}
+      >
+        <Notebook size={21} />
+
+
+        <span>
+          <strong>Explore Programs</strong>
+          <small>Discover public splits</small>
         </span>
       </button>
 
@@ -401,6 +448,7 @@ export default function Workout() {
         </p>
       )}
 
+       
 
       <div className="workout-picker-dialog__routine-list">
         {routines.map((routine) => {
@@ -413,6 +461,7 @@ export default function Workout() {
               0
             ) || 0;
 
+          
 
           return (
             <button
@@ -435,6 +484,94 @@ export default function Workout() {
                   : "Start"}
               </span>
             </button>
+          );
+        })}
+      </div>
+
+      <div className="workout-picker-dialog__routines-header">
+        <span>Saved programs</span>
+        <span>{programs.length}</span>
+      </div>
+
+
+      {programsLoading && (
+        <p className="workout-picker-dialog__status">
+          Loading programs…
+        </p>
+      )}
+
+
+      {programsError && (
+        <p className="workout-picker-dialog__error">
+          {programsError}
+        </p>
+      )}
+
+
+      {!programsLoading && !programsError && !programs.length && (
+        <p className="workout-picker-dialog__status">
+          No saved programs yet. Explore public splits above.
+        </p>
+      )}
+
+      <div className="workout-picker-dialog__routine-list">
+        {programs.map((program) => {
+          const days = program.program_routines || [];
+          const isExpanded = expandedProgramId === program.id;
+
+          return (
+            <div className="workout-picker-dialog__program" key={program.id}>
+              <button
+                type="button"
+                className="saved-routine-card"
+                onClick={() => toggleProgram(program.id)}
+                aria-expanded={isExpanded}
+              >
+                <span>
+                  <strong>
+                    <Layers size={15} style={{ marginRight: 6, verticalAlign: -2 }} />
+                    {program.name}
+                  </strong>
+                  <small>{days.length} day{days.length === 1 ? '' : 's'}</small>
+                </span>
+
+                <span className="saved-routine-card__start">
+                  {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                </span>
+              </button>
+
+              {isExpanded && (
+                <div className="workout-picker-dialog__program-days">
+                  {days.length === 0 ? (
+                    <p className="workout-picker-dialog__status">
+                      This program has no days yet.
+                    </p>
+                  ) : (
+                    days.map((slot) => {
+                      const routine = slot.routines;
+                      return (
+                        <button
+                          type="button"
+                          key={slot.id}
+                          className="saved-routine-card saved-routine-card--day"
+                          disabled={!routine || startingRoutineId !== null}
+                          onClick={() => routine && startRoutine(routine)}
+                        >
+                          <span>
+                            <strong>{slot.day_label}</strong>
+                            <small>{routine?.name || 'Routine unavailable'}</small>
+                          </span>
+
+                          <span className="saved-routine-card__start">
+                            {startingRoutineId === routine?.id ? 'Starting…' : 'Start'}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
           );
         })}
       </div>

@@ -3,6 +3,7 @@ import Home from './pages/Home.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Discover from './pages/Discover.jsx';
 import ExploreRoutines from './components/ExploreRoutines.jsx';
+import ExplorePrograms from './components/ExplorePrograms.jsx';
 import ViewFollowers from './components/ViewFollowers.jsx';
 import Workout from './pages/Workout.jsx';
 import Login from './pages/Login.jsx';
@@ -11,6 +12,7 @@ import Profile from './pages/Profile.jsx';
 import PublicProfile from './pages/PublicProfile.jsx';
 import PrivacyLegal from './pages/Privacy.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import ProgramOverview from './components/ProgramOverview.jsx';
 import RoutineEditor from './components/RoutineEditor.jsx';
 import Settings from './pages/Settings.jsx';
 import SignUp from './pages/SignUp.jsx';
@@ -38,8 +40,9 @@ export default function App() {
       <Route path="/:userId/followers" element={<ViewFollowers />} />
       <Route path="/login" element={<Login />} />
       <Route path="/nutrition" element={<ProtectedRoute><Nutrition /></ProtectedRoute>} />
-      <Route path="/programs" element={<ProtectedRoute><ProgramEditor /></ProtectedRoute>} />
-      <Route path="/programs/:programId" element={<ProtectedRoute><ProgramEditor /></ProtectedRoute>} />
+      <Route path="/programs/new" element={<ProtectedRoute><ProgramEditor /></ProtectedRoute>} />
+      <Route path="/programs" element={<ProtectedRoute><ExplorePrograms /></ProtectedRoute>} />
+      <Route path="/programs/:programId" element={<ProtectedRoute><ProgramOverview /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/ranking" element={<ProtectedRoute><Ranking /></ProtectedRoute>} />
       <Route path="/routines/new" element={<ProtectedRoute><RoutineEditor /></ProtectedRoute>} />

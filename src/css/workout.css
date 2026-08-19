@@ -195,3 +195,122 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Container for a program row + its expanded day list */
+.workout-picker-dialog__program {
+  background: #22252c;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+/* Program row itself — reuse the same "tab-like" flat button feel */
+.workout-picker-dialog__program .saved-routine-card {
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 13px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease;
+}
+
+.workout-picker-dialog__program .saved-routine-card:active {
+  opacity: 0.85;
+}
+
+.workout-picker-dialog__program .saved-routine-card strong {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.workout-picker-dialog__program .saved-routine-card small {
+  display: block;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* Expanded list of days — flat, no card borders, just a divider from the header */
+.workout-picker-dialog__program-days {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.2); /* sinks slightly relative to the header, like an inset panel */
+}
+
+/* Each day is a plain list row — no border, no background, no shadow */
+.saved-routine-card--day {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  width: 100%;
+  padding: 11px 14px 11px 30px; /* extra left padding = indent under the program name */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease;
+}
+
+/* Divider between rows instead of separate card borders */
+.saved-routine-card--day + .saved-routine-card--day {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.saved-routine-card--day:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.saved-routine-card--day:active:not(:disabled) {
+  opacity: 0.85;
+}
+
+.saved-routine-card--day:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.saved-routine-card--day strong {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.saved-routine-card--day small {
+  display: block;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 11.5px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* "Start" label / chevron on the right of both program and day rows */
+.saved-routine-card__start {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+/* Red accent when a day is mid-start, matching the ranking-tab.active gradient */
+.saved-routine-card--day:disabled .saved-routine-card__start {
+  background: linear-gradient(180deg, #ff3b30 0%, #e62e24 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  opacity: 1;
+}

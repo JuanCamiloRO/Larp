@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../css/notifications.css';
 
+
 export default function NotificationPanel({ notifications, onClose, onMarkRead }) {
     const navigate = useNavigate();
 
@@ -31,7 +32,7 @@ export default function NotificationPanel({ notifications, onClose, onMarkRead }
             <div
               key={n.id}
               className={`notification-item ${n.is_read ? '' : 'unread'}`}
-              onClick={() => navigate(n.link)}
+              onClick={() => onMarkRead(n.id)}
             >
               <strong>{n.title}</strong>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px' }}>

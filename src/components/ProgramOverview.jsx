@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { cloneProgramForUser } from '../hooks/usePrograms';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Globe, Lock, Play } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
