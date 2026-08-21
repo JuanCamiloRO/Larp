@@ -41,11 +41,11 @@ function calculateMaintenanceCalories({ age, weight, height, gender, experience,
     return null;
   }
 
-  const genderConstant = { male: 5, female: -161 }[gender] ?? -78;
+  const genderConstant = { male: 5, female: -31 }[gender] ?? -78;
   const baseBmr = 10 * parsedWeight + 6.25 * parsedHeight - 5 * parsedAge + genderConstant;
   const activityMultiplier = { 2: 1.2, 3: 1.375, 4: 1.55, 5: 1.725, 6: 1.9 }[parsedFrequency] || 1.2;
   const trainingAdjustment = { beginner: 0.95, intermediate: 1, advanced: 1.05 }[experience] || 1;
-  const goalAdjustment = { muscle: 200, fatloss: -700, strength: 400, maintain: 0 }[goal] || 0;
+  const goalAdjustment = { muscle: 200, fatloss: -600, strength: 400, maintain: 0 }[goal] || 0;
 
   return Math.max(1200, Math.round(baseBmr * activityMultiplier * trainingAdjustment + goalAdjustment));
 }

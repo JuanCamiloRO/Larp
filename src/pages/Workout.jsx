@@ -5,6 +5,7 @@ import { supabase } from '../supabase';
 import { useAuth } from '../hooks/useAuth';
 import { usePrograms } from '../hooks/usePrograms';
 import { useWorkoutContext } from '../context/WorkoutContext';
+import { resolveIncrement, resolveRepRange, suggestProgression } from '../lib/progression';
 import ExercisePicker from '../components/ExercisePicker';
 import ExerciseRankBadge from '../components/ExerciseRankBadge';
 import PRToast from '../components/PRToast';
@@ -16,8 +17,9 @@ import '../css/workout.css';
 
 
 const IMAGE_BASE_URL = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
-const EMPTY_SET = { dbId: null, reps: '', weight: '', done: false, isPR: false, saving: false };
+const EMPTY_SET = { dbId: null, reps: '', weight: '', done: false, isPR: false, saving: false, wasSuggested: false };
 const NOTE_SAVE_DEBOUNCE_MS = 600;
+const PROGRESSION_SESSION_LIMIT = 10;
 
 
 const createSetFromPrevious = (previousSet) => ({
@@ -25,6 +27,20 @@ const createSetFromPrevious = (previousSet) => ({
   weight: previousSet?.weight?.toString() ?? "",
   reps: previousSet?.reps?.toString() ?? "",
 });
+
+// Used only for the FIRST set of an exercise, where a suggestion is available.
+// Weight is pre-filled (a decision made before lifting) but reps is left
+// blank — reps is an observation of what actually happened, and pre-filling
+// it risks people rubber-stamping a number they didn't really hit.
+const createSetFromSuggestion = (suggestion, previousSet) => {
+  const suggestedWeight = suggestion?.weight;
+  return {
+    ...EMPTY_SET,
+    weight: suggestedWeight != null ? suggestedWeight.toString() : (previousSet?.weight?.toString() ?? ''),
+    reps: '',
+    wasSuggested: suggestedWeight != null,
+  };
+};
 
 
 export default function Workout() {
@@ -95,10 +111,80 @@ export default function Workout() {
   }
 
 
+  // Mirrors useProgression's steps 1-6, but as a plain async function rather
+  // than a hook, since we need one suggestion per exercise inside a loop
+  // (addExercise / startRoutine) rather than one hook call per component.
+  async function getProgressionSuggestion(exerciseId) {
+    try {
+      const { data: exercise, error: exerciseError } = await supabase
+        .from('exercises')
+        .select('id, progression_category')
+        .eq('id', exerciseId)
+        .single();
+      if (exerciseError) throw exerciseError;
+
+      const { data: userPrefs, error: prefsError } = await supabase
+        .from('exercise_progression_prefs')
+        .select('rep_min, rep_max, increment')
+        .eq('user_id', user.id)
+        .eq('exercise_id', exerciseId)
+        .maybeSingle();
+      if (prefsError) throw prefsError;
+
+      let trainingGoal = null;
+      if (!userPrefs) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('training_goal')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (profileError) throw profileError;
+        trainingGoal = profile?.training_goal ?? null;
+      }
+
+      const increment = resolveIncrement({ userIncrement: userPrefs?.increment, category: exercise?.progression_category });
+      const { repMin, repMax } = resolveRepRange({ userRepMin: userPrefs?.rep_min, userRepMax: userPrefs?.rep_max, goal: trainingGoal });
+
+      const { data: sets, error: setsError } = await supabase
+        .from('workout_sets')
+        .select('reps, weight, set_number, workout_id, workouts!inner(ended_at, user_id)')
+        .eq('exercise_id', exerciseId)
+        .eq('workouts.user_id', user.id)
+        .not('workouts.ended_at', 'is', null)
+        .order('ended_at', { ascending: false, foreignTable: 'workouts' })
+        .limit(PROGRESSION_SESSION_LIMIT * 6);
+      if (setsError) throw setsError;
+
+      const byWorkout = new Map();
+      for (const set of sets || []) {
+        if (!byWorkout.has(set.workout_id)) {
+          byWorkout.set(set.workout_id, { endedAt: set.workouts.ended_at, setsByNumber: [] });
+        }
+        byWorkout.get(set.workout_id).setsByNumber.push(set);
+      }
+
+      const sessions = Array.from(byWorkout.values())
+        .sort((a, b) => new Date(b.endedAt) - new Date(a.endedAt))
+        .slice(0, PROGRESSION_SESSION_LIMIT)
+        .map((session) => ({
+          sets: session.setsByNumber
+            .sort((a, b) => a.set_number - b.set_number)
+            .map((set) => ({ weight: set.weight, reps: set.reps })),
+        }));
+
+      return suggestProgression(sessions, { repMin, repMax, increment });
+    } catch (error) {
+      console.error('Progression suggestion:', error);
+      return null; // fall back to previous-set behavior, never block adding the exercise
+    }
+  }
+
+
   async function addExercise(exercise) {
   const previousSets = await getPreviousSetsForExercise(exercise.id);
   const note = await getExistingNote(workoutId, exercise.id);
   const previousNote = note ? '' : await getPreviousNoteForExercise(exercise.id);
+  const suggestion = await getProgressionSuggestion(exercise.id);
 
 
   setExercises((current) => [
@@ -108,7 +194,8 @@ export default function Workout() {
       previousSets,
       note,
       previousNote,
-      sets: [createSetFromPrevious(previousSets[1])],
+      suggestion,
+      sets: [createSetFromSuggestion(suggestion, previousSets[1])],
     },
   ]);
 
@@ -171,15 +258,19 @@ export default function Workout() {
         items.map(async (item) => {
           const previousSets = await getPreviousSetsForExercise(item.exercises.id);
           const previousNote = await getPreviousNoteForExercise(item.exercises.id);
+          const suggestion = await getProgressionSuggestion(item.exercises.id);
 
           return {
             ...item.exercises,
             previousSets,
             note: '',
             previousNote,
+            suggestion,
             sets: Array.from(
               { length: item.default_sets },
-              (_, index) => createSetFromPrevious(previousSets[index + 1])
+              (_, index) => index === 0
+                ? createSetFromSuggestion(suggestion, previousSets[1])
+                : createSetFromPrevious(previousSets[index + 1])
             ),
           };
         })
@@ -206,13 +297,18 @@ export default function Workout() {
   patchExercise(index, (exercise) => {
     const nextSetNumber = exercise.sets.length + 1;
     const previousSet = exercise.previousSets?.[nextSetNumber];
-
+    // Additional sets within the same session use the same suggested weight
+    // as the first set (double progression targets one working weight per
+    // exercise per session, not per individual set).
+    const suggestedWeight = exercise.suggestion?.weight;
 
     return {
       ...exercise,
       sets: [
         ...exercise.sets,
-        createSetFromPrevious(previousSet),
+        suggestedWeight != null
+          ? { ...EMPTY_SET, weight: suggestedWeight.toString(), wasSuggested: true }
+          : createSetFromPrevious(previousSet),
       ],
     };
   });
@@ -226,7 +322,15 @@ export default function Workout() {
 
 
 
-  function updateSet(exerciseIndex, setIndex, field, value) { patchExercise(exerciseIndex, (item) => ({ ...item, sets: item.sets.map((set, index) => index === setIndex ? { ...set, [field]: value } : set) })); }
+  function updateSet(exerciseIndex, setIndex, field, value) {
+    patchExercise(exerciseIndex, (item) => ({
+      ...item,
+      sets: item.sets.map((set, index) => index === setIndex
+        ? { ...set, [field]: value, ...(field === 'weight' ? { wasSuggested: false } : {}) } // manual edit overrides the suggestion styling
+        : set
+      ),
+    }));
+  }
 
 
   function updateNote(exerciseIndex, exerciseId, value) {
@@ -328,7 +432,22 @@ export default function Workout() {
       <section className="workout-exercises">{exercises.map((exercise, exerciseIndex) => <article className="workout-card" key={exercise.id}><header className="workout-card__header"><div className="workout-card__exercise-info">{exercise.images?.[0] && <img className="workout-card__thumbnail" src={imageUrl(exercise.images[0])} alt={exercise.name} />}<span className="workout-card__exercise-name">{exercise.name}</span><ExerciseRankBadge exerciseId={exercise.id} userId={user.id} /><button className="icon-button icon-button--delete" onClick={() => removeExercise(exerciseIndex)}><Trash size={16} /></button>{restTimer.startedAt &&
       restTimer.exerciseId === exercise.id && (
         <RestTimer startedAt={restTimer.startedAt} />
-      )}</div></header>
+      )}</div>
+      {exercise.suggestion?.targetReps && (
+        <p className="workout-card__progression-hint">
+          {exercise.suggestion.reason === 'progress' && `You should increase the weight by 1 to 2 kg since you hit ${exercise.suggestion.targetReps} reps last time, aim for ${exercise.suggestion.targetReps} reps.`}
+          {exercise.suggestion.reason === 'deload' && `You stalled a few sessions in a row, try easing back, aim for ${exercise.suggestion.targetReps} reps.`}
+          {exercise.suggestion.reason === 'repeat' && exercise.suggestion.previousBestSet && (
+            exercise.suggestion.previousBestSet.reps >= exercise.suggestion.targetReps
+              ? `Your best set last time was ${exercise.suggestion.previousBestSet.weight}×${exercise.suggestion.previousBestSet.reps}, you should get every set to those reps.`
+              : `Your best set last time was ${exercise.suggestion.previousBestSet.weight}×${exercise.suggestion.previousBestSet.reps}. Try to get ${exercise.suggestion.targetReps} this time.`
+          )}
+          {exercise.suggestion.reason === 'repeat' && !exercise.suggestion.previousBestSet && (
+            `You should use the same weight as last time, aim for ${exercise.suggestion.targetReps} reps`
+          )}
+        </p>
+      )}
+      </header>
       <div className="workout-card__note">
         <textarea
           className="workout-card__note-input"
@@ -341,7 +460,7 @@ export default function Workout() {
           <p className="workout-card__note-previous">Last time: {exercise.previousNote}</p>
         )}
       </div>
-      <div className="set-table"><div className="set-table__header"><span>Set</span><span>Previous</span><span>Weight</span><span>Reps</span><span /><span /><span /></div>{exercise.sets.map((set, setIndex) => { const previous = exercise.previousSets?.[setIndex + 1]; return <div className={`set-row ${set.done ? 'set-row--completed' : ''}`} key={set.dbId ?? `local-${setIndex}`}><span className="set-row__number">{setIndex + 1}</span><span className={`set-row__previous ${previous ? '' : 'set-row__previous--empty'}`}>{previous ? `${previous.weight} × ${previous.reps}` : '—'}</span><input className="set-row__input" type="number" step="0.5" placeholder={previous ? previous.weight : 'weight'} value={set.weight} disabled={set.done} onChange={(event) => updateSet(exerciseIndex, setIndex, 'weight', event.target.value)} /><input className="set-row__input" type="number" step="1" placeholder={previous ? previous.reps : 'reps'} value={set.reps} disabled={set.done} onChange={(event) => updateSet(exerciseIndex, setIndex, 'reps', event.target.value)} /><span className="set-row__pr-icon">{set.isPR ? '🥇' : ''}</span><button className={`set-row__check-button ${set.done ? 'set-row__check-button--active' : ''}`} onClick={() => toggleSetDone(exerciseIndex, setIndex)} disabled={set.saving}>{set.saving ? '…' : '✓'}</button><button className="set-row__delete-button" onClick={() => deleteSet(exerciseIndex, setIndex)}>✕</button></div>; })}</div><button className="add-set-button" onClick={() => addSet(exerciseIndex)}>+ Add Set</button></article>)}</section>
+      <div className="set-table"><div className="set-table__header"><span>Set</span><span>Previous</span><span>Weight</span><span>Reps</span><span /><span /><span /></div>{exercise.sets.map((set, setIndex) => { const previous = exercise.previousSets?.[setIndex + 1]; return <div className={`set-row ${set.done ? 'set-row--completed' : ''}`} key={set.dbId ?? `local-${setIndex}`}><span className="set-row__number">{setIndex + 1}</span><span className={`set-row__previous ${previous ? '' : 'set-row__previous--empty'}`}>{previous ? `${previous.weight} × ${previous.reps}` : '—'}</span><input className={`set-row__input ${set.wasSuggested && !set.done ? 'set-row__input--suggested' : ''}`} type="number" step="0.5" placeholder={previous ? previous.weight : 'weight'} value={set.weight} disabled={set.done} onChange={(event) => updateSet(exerciseIndex, setIndex, 'weight', event.target.value)} /><input className="set-row__input" type="number" step="1" placeholder={previous ? previous.reps : 'reps'} value={set.reps} disabled={set.done} onChange={(event) => updateSet(exerciseIndex, setIndex, 'reps', event.target.value)} /><span className="set-row__pr-icon">{set.isPR ? '🥇' : ''}</span><button className={`set-row__check-button ${set.done ? 'set-row__check-button--active' : ''}`} onClick={() => toggleSetDone(exerciseIndex, setIndex)} disabled={set.saving}>{set.saving ? '…' : '✓'}</button><button className="set-row__delete-button" onClick={() => deleteSet(exerciseIndex, setIndex)}>✕</button></div>; })}</div><button className="add-set-button" onClick={() => addSet(exerciseIndex)}>+ Add Set</button></article>)}</section>
       <button className="add-exercise-button" onClick={() => setShowPicker(true)}>+ Add Exercise</button><div className="workout-actions"><button className="finish-workout-button" onClick={() => { setEndedAt(new Date()); setFinished(true); }}>Finish Workout</button><button className="delete-workout-button" onClick={() => setConfirmingDelete(true)}>Discard</button></div>
     </>}
     <div className="workout-bottom-spacer" />

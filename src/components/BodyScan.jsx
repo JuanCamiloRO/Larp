@@ -5,16 +5,16 @@ import { supabase } from '../supabase';
 import "../css/style.css";
 
 function BodyScan({ onClose }) {
-  const [foto, setFoto] = useState(null);
-  const [resultado, setResultado] = useState(null);
-  const [cargando, setCargando] = useState(false);
-  const [perfil, setPerfil] = useState({ peso: "", altura: "", grasa: "", sexo: "H" });
+  const [photo, setPhoto] = useState(null);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [profile, setProfile] = useState({ weight: "", height: "", bodyFat: "", gender: "H" });
   const [inputKey, setInputKey] = useState(0);
-  const imagenRef = useRef(null);
+  const imageRef = useRef(null);
 
-  // Precargar peso y altura desde el perfil al montar
+  // Preload weight and height from the profile on mount
   useEffect(() => {
-    async function cargarPerfil() {
+    async function loadProfile() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
@@ -25,45 +25,45 @@ function BodyScan({ onClose }) {
         .single();
 
       if (error) {
-        console.log("No se pudo cargar perfil previo:", error.message);
+        console.log("Could not load existing profile:", error.message);
         return;
       }
 
       if (data) {
-        setPerfil((p) => ({
+        setProfile((p) => ({
           ...p,
-          peso: data.weight?.toString() || "",
-          altura: data.height?.toString() || "",
-          grasa: data.body_fat?.toString() || "",
-          sexo: data.gender === "female" ? "M" : "H",
+          weight: data.weight?.toString() || "",
+          height: data.height?.toString() || "",
+          bodyFat: data.body_fat?.toString() || "",
+          gender: data.gender === "female" ? "M" : "H",
         }));
       }
     }
-    cargarPerfil();
+    loadProfile();
   }, []);
 
-  const resetearTodo = useCallback(() => {
-    if (foto) URL.revokeObjectURL(foto);
-    setFoto(null);
-    setResultado(null);
-    setCargando(false);
+  const resetAll = useCallback(() => {
+    if (photo) URL.revokeObjectURL(photo);
+    setPhoto(null);
+    setResult(null);
+    setLoading(false);
     setInputKey((k) => k + 1);
     onClose?.();
-  }, [foto, onClose]);
+  }, [photo, onClose]);
 
-  const handleFoto = (e) => {
-    const archivo = e.target.files[0];
-    if (!archivo) return;
-    if (foto) URL.revokeObjectURL(foto);
-    setFoto(URL.createObjectURL(archivo));
-    setResultado(null);
+  const handlePhoto = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (photo) URL.revokeObjectURL(photo);
+    setPhoto(URL.createObjectURL(file));
+    setResult(null);
   };
 
-  const handlePerfil = (campo, valor) => {
-    setPerfil((p) => ({ ...p, [campo]: valor }));
+  const handleProfile = (field, value) => {
+    setProfile((p) => ({ ...p, [field]: value }));
   };
 
-  async function crearDetector() {
+  async function createDetector() {
     const vision = await FilesetResolver.forVisionTasks(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
     );
@@ -76,77 +76,77 @@ function BodyScan({ onClose }) {
     });
   }
 
-  const procesarFoto = async () => {
-    if (!imagenRef.current) return;
-    setCargando(true);
+  const processPhoto = async () => {
+    if (!imageRef.current) return;
+    setLoading(true);
 
     try {
-      // 1. Obtener usuario UNA sola vez
+      // 1. Get the user ONCE
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
-        alert("Sesión no válida. Inicia sesión de nuevo.");
-        setCargando(false);
+        alert("Invalid session. Please sign in again.");
+        setLoading(false);
         return;
       }
 
-      const detector = await crearDetector();
-      const deteccion = detector.detect(imagenRef.current);
+      const detector = await createDetector();
+      const detection = detector.detect(imageRef.current);
 
-      if (!deteccion.landmarks || deteccion.landmarks.length === 0) {
-        alert("No se detectó un cuerpo, repite la foto con mejor luz/postura.");
-        setCargando(false);
+      if (!detection.landmarks || detection.landmarks.length === 0) {
+        alert("No body detected — retake the photo with better lighting/posture.");
+        setLoading(false);
         return;
       }
 
-      const puntos = deteccion.landmarks[0];
-      const scores = calcularScores(puntos);
+      const landmarks = detection.landmarks[0];
+      const scores = calcularScores(landmarks);
 
-      const p = perfil;
-      const tienePerfil = p.peso && p.altura && p.grasa;
-      let scoreMusc = null;
-      let scoreDef = null;
+      const p = profile;
+      const hasProfile = p.weight && p.height && p.bodyFat;
+      let muscleScore = null;
+      let definitionScore = null;
 
-      if (tienePerfil) {
-        const md = calcularMasaDef(Number(p.peso), Number(p.altura), Number(p.grasa), p.sexo);
-        scoreMusc = md.scoreMusc;
-        scoreDef = md.scoreDef;
+      if (hasProfile) {
+        const md = calcularMasaDef(Number(p.weight), Number(p.height), Number(p.bodyFat), p.gender);
+        muscleScore = md.scoreMusc;
+        definitionScore = md.scoreDef;
       }
 
       const overall = Math.round(
         scores.scorePotencial * 0.30 +
         scores.scoreSimetria * 0.25 +
         scores.scorePostura * 0.25 +
-        (scoreMusc !== null ? scoreMusc * 0.10 : 0) +
-        (scoreDef !== null ? scoreDef * 0.10 : 0)
+        (muscleScore !== null ? muscleScore * 0.10 : 0) +
+        (definitionScore !== null ? definitionScore * 0.10 : 0)
       );
 
-      const final = { ...scores, scoreMusc, scoreDef, scoreTotal: overall };
-      setResultado(final);
+      const finalResult = { ...scores, scoreMusc: muscleScore, scoreDef: definitionScore, scoreTotal: overall };
+      setResult(finalResult);
 
-      // 2. Guardar scan en body_scans
+      // 2. Save the scan to body_scans
       const { error: scanError } = await supabase.from("body_scans").insert({
         user_id: user.id,
-        score_potencial: final.scorePotencial,
-        score_simetria: final.scoreSimetria,
-        score_postura: final.scorePostura,
-        score_musc: final.scoreMusc,
-        score_def: final.scoreDef,
-        score_total: final.scoreTotal,
+        score_potencial: finalResult.scorePotencial,
+        score_simetria: finalResult.scoreSimetria,
+        score_postura: finalResult.scorePostura,
+        score_musc: finalResult.scoreMusc,
+        score_def: finalResult.scoreDef,
+        score_total: finalResult.scoreTotal,
       });
 
       if (scanError) {
-        console.error("Error guardando body_scans:", scanError);
-        alert("Error guardando el scan: " + scanError.message);
+        console.error("Error saving body_scans:", scanError);
+        alert("Error saving the scan: " + scanError.message);
       }
 
-      // 3. Guardar peso y altura en profiles (CORREGIDO)
-      if (perfil.peso && perfil.altura) {
+      // 3. Save weight and height to profiles
+      if (profile.weight && profile.height) {
         const updates = {
-          weight: Number(perfil.peso),
-          height: Number(perfil.altura),
+          weight: Number(profile.weight),
+          height: Number(profile.height),
         };
-        if (perfil.grasa) {
-          updates.body_fat = Number(perfil.grasa);
+        if (profile.bodyFat) {
+          updates.body_fat = Number(profile.bodyFat);
         }
 
         const { error: profileError } = await supabase
@@ -155,17 +155,17 @@ function BodyScan({ onClose }) {
           .eq("id", user.id);
 
         if (profileError) {
-          console.error("Error actualizando perfil:", profileError);
-          alert("Error guardando peso/altura en perfil: " + profileError.message);
+          console.error("Error updating profile:", profileError);
+          alert("Error saving weight/height to profile: " + profileError.message);
         } else {
-          console.log("✅ Perfil actualizado correctamente:", updates);
+          console.log("✅ Profile updated successfully:", updates);
         }
       }
     } catch (err) {
       console.error(err);
-      alert("Error al analizar. Intenta con otra foto.");
+      alert("Error analyzing photo. Please try a different one.");
     } finally {
-      setCargando(false);
+      setLoading(false);
     }
   };
 
@@ -177,15 +177,15 @@ function BodyScan({ onClose }) {
     return "#ef4444";
   };
 
-  const stats = resultado
+  const stats = result
     ? [
-        { abbr: "POT", label: "Potencial", val: resultado.scorePotencial },
-        { abbr: "SIM", label: "Simetría", val: resultado.scoreSimetria },
-        { abbr: "POS", label: "Postura", val: resultado.scorePostura },
-        ...(resultado.scoreMusc !== null
+        { abbr: "POT", label: "Potential", val: result.scorePotencial },
+        { abbr: "SYM", label: "Symmetry", val: result.scoreSimetria },
+        { abbr: "POS", label: "Posture", val: result.scorePostura },
+        ...(result.scoreMusc !== null
           ? [
-              { abbr: "MUSC", label: "Masa", val: resultado.scoreMusc },
-              { abbr: "DEF", label: "Definición", val: resultado.scoreDef },
+              { abbr: "MUSC", label: "Muscle", val: result.scoreMusc },
+              { abbr: "DEF", label: "Definition", val: result.scoreDef },
             ]
           : []),
       ]
@@ -220,98 +220,98 @@ function BodyScan({ onClose }) {
       <div className="bodyscan-header">
         <div>
           <p className="brand">BodyScan</p>
-          <h2 className="page-title bodyscan-title">Escanea tu cuerpo</h2>
-          <p className="subtle">De frente, brazos ligeramente separados, buena luz y ropa ajustada.</p>
+          <h2 className="page-title bodyscan-title">Scan your body</h2>
+          <p className="subtle">Face forward, arms slightly apart and good lightning.</p>
         </div>
       </div>
 
       <div className="bodyscan-controls">
         <label className="bodyscan-upload-button" htmlFor="bodyscan-input">
-          <span>Elegir foto</span>
+          <span>Choose photo</span>
         </label>
         <input
           id="bodyscan-input"
           key={inputKey}
           type="file"
           accept="image/*"
-          onChange={handleFoto}
+          onChange={handlePhoto}
           style={{ display: "none" }}
         />
 
         <button
           className="primary-btn bodyscan-analyze-button"
-          onClick={procesarFoto}
-          disabled={cargando || !foto}
+          onClick={processPhoto}
+          disabled={loading || !photo}
         >
-          {cargando ? "Procesando..." : "Analizar"}
+          {loading ? "Processing..." : "Analyze"}
         </button>
       </div>
 
       <div style={{ maxWidth: 340, width: "100%", marginTop: 20 }}>
-        <p style={{ ...labelStyle, marginBottom: 10 }}>Datos opcionales</p>
+        <p style={{ ...labelStyle, marginBottom: 10 }}>Optional details</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 12px" }}>
           <div>
-            <label style={labelStyle}>Peso (kg)</label>
+            <label style={labelStyle}>Weight (kg)</label>
             <input
               type="number"
               inputMode="decimal"
               placeholder="70"
-              value={perfil.peso}
-              onChange={(e) => handlePerfil("peso", e.target.value)}
+              value={profile.weight}
+              onChange={(e) => handleProfile("weight", e.target.value)}
               style={inputStyle}
             />
           </div>
           <div>
-            <label style={labelStyle}>Altura (cm)</label>
+            <label style={labelStyle}>Height (cm)</label>
             <input
               type="number"
               inputMode="decimal"
               placeholder="175"
-              value={perfil.altura}
-              onChange={(e) => handlePerfil("altura", e.target.value)}
+              value={profile.height}
+              onChange={(e) => handleProfile("height", e.target.value)}
               style={inputStyle}
             />
           </div>
           <div>
-            <label style={labelStyle}>% Grasa</label>
+            <label style={labelStyle}>Body fat %</label>
             <input
               type="number"
               inputMode="decimal"
               placeholder="18"
-              value={perfil.grasa}
-              onChange={(e) => handlePerfil("grasa", e.target.value)}
+              value={profile.bodyFat}
+              onChange={(e) => handleProfile("bodyFat", e.target.value)}
               style={inputStyle}
             />
           </div>
           <div>
-            <label style={labelStyle}>Sexo</label>
+            <label style={labelStyle}>Sex</label>
             <select
-              value={perfil.sexo}
-              onChange={(e) => handlePerfil("sexo", e.target.value)}
+              value={profile.gender}
+              onChange={(e) => handleProfile("gender", e.target.value)}
               style={{ ...inputStyle, cursor: "pointer" }}
             >
-              <option value="H" style={{ background: "#1e293b", color: "#fff" }}>Hombre</option>
-              <option value="M" style={{ background: "#1e293b", color: "#fff" }}>Mujer</option>
+              <option value="H" style={{ background: "#1e293b", color: "#fff" }}>Male</option>
+              <option value="M" style={{ background: "#1e293b", color: "#fff" }}>Female</option>
             </select>
           </div>
         </div>
         <p style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", margin: "10px 0 0", lineHeight: 1.4 }}>
-          Rellena estos campos para desbloquear Masa y Definición en tu carta.
+          Fill in these fields to unlock Muscle and Definition on your card.
         </p>
       </div>
 
-      {foto && !resultado && (
+      {photo && !result && (
         <div className="bodyscan-preview">
           <img
-            ref={imagenRef}
-            src={foto}
-            alt="foto body scan"
+            ref={imageRef}
+            src={photo}
+            alt="body scan photo"
             className="bodyscan-image"
           />
         </div>
       )}
 
-      {resultado && (
+      {result && (
         <>
           <div
             style={{
@@ -327,7 +327,7 @@ function BodyScan({ onClose }) {
             }}
           >
             <img
-              src={foto}
+              src={photo}
               alt="body scan"
               style={{
                 position: "absolute",
@@ -371,7 +371,7 @@ function BodyScan({ onClose }) {
                   textShadow: "0 2px 12px rgba(0,0,0,0.8)",
                 }}
               >
-                {resultado.scoreTotal}
+                {result.scoreTotal}
               </span>
               <div
                 style={{
@@ -384,7 +384,7 @@ function BodyScan({ onClose }) {
               >
                 <div
                   style={{
-                    width: `${resultado.scoreTotal}%`,
+                    width: `${result.scoreTotal}%`,
                     height: "100%",
                     borderRadius: 2,
                     background: "#fff",
@@ -500,9 +500,9 @@ function BodyScan({ onClose }) {
           <div className="bodyscan-controls" style={{ marginTop: 16 }}>
             <button
               className="primary-btn bodyscan-analyze-button"
-              onClick={resetearTodo}
+              onClick={resetAll}
             >
-              Escanear de nuevo
+              Scan again
             </button>
           </div>
         </>
