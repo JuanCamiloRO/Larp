@@ -11,6 +11,7 @@ import FoodSearch from '../components/FoodSearch';
 import LogFoodModal from '../components/LogFoodModal';
 import CalorieRing from '../components/CalorieRing';
 import CalorieGoalEditor from '../components/CalorieGoalEditor';
+import DailyNutritionModal from '../components/DailyNutritionModal';
 import MacroProgress from '../components/MacroProgress';
 import MacroGoalModal from '../components/MacroGoalModal';
 import RecentFoods from '../components/RecentFoods';
@@ -53,6 +54,7 @@ export default function Nutrition() {
   const [pendingFood, setPendingFood] = useState(null);
   const [mealScanOpen, setMealScanOpen] = useState(false);
   const [macroModalOpen, setMacroModalOpen] = useState(false);
+  const [dailyNutritionOpen, setDailyNutritionOpen] = useState(false);
 
   function changeDay(offset) {
     const next = new Date(currentDate);
@@ -64,8 +66,8 @@ export default function Nutrition() {
     setPendingFood(food);
   }
 
-  async function handleConfirmLog(food, mealType, grams) {
-    await addLog(food, mealType, grams);
+  async function handleConfirmLog(food, mealType, grams, nutrients) {
+    await addLog(food, mealType, grams, nutrients);
     refetchRecent();
     setPendingFood(null);
     setSearchOpenForMeal(null);
@@ -149,9 +151,19 @@ export default function Nutrition() {
             >
              Edit Nutrition Goals 
             </button>
+            
           </div>
         </div>
 
+    {dailyNutritionOpen && (
+  <DailyNutritionModal
+    logs={logs}
+    goal={goal}
+    macroGoals={macroGoalsInGrams(macros)}
+    dateLabel={formatDisplayDate(currentDate)}
+    onClose={() => setDailyNutritionOpen(false)}
+  />
+)}
         {mealScanOpen && (
           <MealScan
             defaultMeal={searchOpenForMeal || 'lunch'}
@@ -242,6 +254,17 @@ export default function Nutrition() {
             onCancel={() => setPendingFood(null)}
           />
         )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <button
+    type="button"
+    className="secondary-btn"
+    style={{ marginTop: '24px', marginBottom: '24px' }}
+    onClick={() => setDailyNutritionOpen(true)}
+  >
+    See your daily nutrition
+  </button>
+  </div>
 
         <WeightProgress userId={user?.id} />
 

@@ -1,8 +1,3 @@
-// components/LogFoodModal.jsx
-// Appears after a food is selected from search. Lets the user set a serving
-// size (grams) and pick which meal to log it under, showing a live macro
-// preview scaled to that serving before confirming with onConfirm.
-
 import { useState, useMemo } from 'react';
 import { MEAL_TYPES } from '../hooks/useFoodLogs';
 
@@ -13,25 +8,42 @@ const MEAL_LABELS = {
   snacks: 'Snacks',
 };
 
+// Scales a per-100g nutriment field to the given grams. Returns null (not 0)
+// when the source field is missing, so we never fabricate data OFF doesn't have.
+function scale(perHundred, grams, roundTo = 1) {
+  if (perHundred === null || perHundred === undefined) return null;
+  const factor = Math.pow(10, roundTo);
+  return Math.round(perHundred * (grams / 100) * factor) / factor;
+}
 export default function LogFoodModal({ food, defaultMeal, onConfirm, onCancel }) {
   const [grams, setGrams] = useState(100);
   const [mealType, setMealType] = useState(defaultMeal || 'breakfast');
   const [error, setError] = useState(null);
 
-  // Recompute macros live as the user adjusts serving size
-  const scaledMacros = useMemo(() => {
-    const scale = grams / 100;
+  // Recompute the full nutriment set live as the user adjusts serving size.
+  // This is also exactly what gets persisted to food_logs on confirm, so the
+  // daily nutrition view has real data instead of nulls.
+  const scaledNutrients = useMemo(() => {
     return {
-      calories: food.calories_per_100g != null ? Math.round(food.calories_per_100g * scale) : null,
-      protein: food.protein_per_100g != null ? Math.round(food.protein_per_100g * scale * 10) / 10 : null,
-      carbs: food.carbs_per_100g != null ? Math.round(food.carbs_per_100g * scale * 10) / 10 : null,
-      fat: food.fat_per_100g != null ? Math.round(food.fat_per_100g * scale * 10) / 10 : null,
+      calories: scale(food.calories_per_100g, grams, 0),
+      protein: scale(food.protein_per_100g, grams, 1),
+      carbs: scale(food.carbs_per_100g, grams, 1),
+      fat: scale(food.fat_per_100g, grams, 1),
+      fiber: scale(food.fiber_per_100g, grams, 1),
+      sugar: scale(food.sugar_per_100g, grams, 1),
+      saturated_fat: scale(food.saturated_fat_per_100g, grams, 1),
+      sodium: scale(food.sodium_per_100g, grams, 3),
+      salt: scale(food.salt_per_100g, grams, 2),
     };
   }, [grams, food]);
 
   function handleConfirm() {
-    if (grams <= 0) { setError('Must log at least 1 gram'); return;};
-    onConfirm(food, mealType, grams);
+    const gramsNum = Number(grams);
+    if (!gramsNum || gramsNum <= 0) {
+      setError('Must log at least 1 gram');
+      return;
+    }
+    onConfirm(food, mealType, gramsNum, scaledNutrients);
   }
 
   return (
@@ -50,7 +62,7 @@ export default function LogFoodModal({ food, defaultMeal, onConfirm, onCancel })
           type="number"
           className="food-search-input"
           value={grams}
-          onChange={(e) => setGrams((e.target.value))}
+          onChange={(e) => setGrams(e.target.value)}
         />
         <span style={{ color: 'red' }} className="subtle">{error}</span>
 
@@ -68,10 +80,10 @@ export default function LogFoodModal({ food, defaultMeal, onConfirm, onCancel })
         </div>
 
         <div className="modal-macro-preview">
-          <span className="subtle">Calories: {scaledMacros.calories ?? '—'}</span>
-          <span className="subtle">Protein: {scaledMacros.protein ?? '—'}g</span>
-          <span className="subtle">Carbs: {scaledMacros.carbs ?? '—'}g</span>
-          <span className="subtle">Fat: {scaledMacros.fat ?? '—'}g</span>
+          <span className="subtle">Calories: {scaledNutrients.calories ?? '—'}</span>
+          <span className="subtle">Protein: {scaledNutrients.protein ?? '—'}g</span>
+          <span className="subtle">Carbs: {scaledNutrients.carbs ?? '—'}g</span>
+          <span className="subtle">Fat: {scaledNutrients.fat ?? '—'}g</span>
         </div>
 
         <div className="modal-actions">
