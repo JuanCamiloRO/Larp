@@ -54,6 +54,7 @@ export default function FollowButton({ targetUserId, style }) {
     title: 'New follower',
     actor_avatar_url: resolveImageUrl(profile?.avatar_url),
     body: ` ${profile.username || 'Someone'} started following you`,
+    link: `/profile/${user.id}`,
   });
     }
     setIsFollowing(!isFollowing);

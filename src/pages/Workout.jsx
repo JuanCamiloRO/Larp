@@ -5,7 +5,7 @@ import { supabase } from '../supabase';
 import { useAuth } from '../hooks/useAuth';
 import { usePrograms } from '../hooks/usePrograms';
 import { useWorkoutContext } from '../context/WorkoutContext';
-import { resolveIncrement, resolveRepRange, suggestProgression } from '../lib/progression';
+import { resolveIncrement, resolveRepRange, roundToIncrement, suggestProgression } from '../lib/progression';
 import ExercisePicker from '../components/ExercisePicker';
 import ExerciseRankBadge from '../components/ExerciseRankBadge';
 import PRToast from '../components/PRToast';
@@ -42,6 +42,22 @@ const createSetFromSuggestion = (suggestion, previousSet) => {
   };
 };
 
+// Mirrors the hardcoded exercise_id list in the update_exercise_rank backend
+// function — these are the only exercises where ws.weight (as stored) means
+// ADDED load only, and true effective load is user_bodyweight + ws.weight.
+// Keeping this list in sync with the backend manually is a real risk; if
+// you ever add/remove a bodyweight-ranked exercise, both places need the
+// same edit. Worth moving to a single shared source later (e.g. a
+// `progression_category`-style column read by both, or fetching this list
+// from the DB once at startup) rather than hardcoding it twice.
+const BODYWEIGHT_LOAD_EXERCISE_IDS = new Set([
+  '21c7ce91-7468-4838-8e22-beb7939a0f57', // Chin Up
+  '98cbd91f-bb5a-43f8-b14f-d0fc29a0d584', // Pull Ups
+  '876292d7-a14e-491c-b1e2-88f24f5f9662', // Muscle Up
+  '358f5fa6-df47-47af-bf85-7eb5518ee4fc', // One Arm Chin-Up
+  '1e6d091c-0b64-4975-bcbf-c6105df6533a', // Weighted Dip
+]);
+
 
 export default function Workout() {
   const navigate = useNavigate();
@@ -59,12 +75,31 @@ export default function Workout() {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [toast, setToast] = useState(null);
   const [summary, setSummary] = useState(null);
+  const [bodyWeight, setBodyWeight] = useState(null);
   const noteSaveTimers = useRef({});
 
 
 
   useEffect(() => { if (!toast) return undefined; const timer = setTimeout(() => setToast(null), 2500); return () => clearTimeout(timer); }, [toast]);
   useEffect(() => () => { Object.values(noteSaveTimers.current).forEach(clearTimeout); }, []);
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+
+    async function loadBodyWeight() {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('weight')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) { console.error('Load body weight:', error); return; }
+      setBodyWeight(data?.weight ?? null);
+    }
+
+    loadBodyWeight();
+    return () => { cancelled = true; };
+  }, [user?.id]);
   const imageUrl = (image) => image.startsWith('http') ? image : `${IMAGE_BASE_URL}${image}`;
   const patchExercise = (index, updater) => setExercises((current) => current.map((item, itemIndex) => itemIndex === index ? updater(item) : item));
 
@@ -171,6 +206,46 @@ export default function Workout() {
             .sort((a, b) => a.set_number - b.set_number)
             .map((set) => ({ weight: set.weight, reps: set.reps })),
         }));
+
+      const isBodyweightLoadExercise = BODYWEIGHT_LOAD_EXERCISE_IDS.has(exerciseId);
+
+      if (isBodyweightLoadExercise) {
+        // ws.weight for these lifts is ADDED load only (0 by default) —
+        // exactly mirroring update_exercise_rank in the backend. The 1RM
+        // math needs TOTAL effective load (bodyweight + added) to mean
+        // anything; without this, a fresh set of weighted chin-ups at
+        // added=0 would look identical to a beginner doing 2 reps of
+        // bodyweight, when really they're carrying 80kg+ of bodyweight
+        // alone. If we don't know their bodyweight yet, skip the
+        // suggestion entirely rather than silently running the math on
+        // added-load-only numbers — that's the exact bug this replaces.
+        if (bodyWeight == null || bodyWeight <= 0) return null;
+
+        const totalLoadSessions = sessions.map((session) => ({
+          sets: session.sets.map((set) => ({ ...set, weight: (set.weight || 0) + bodyWeight })),
+        }));
+
+        const totalLoadSuggestion = suggestProgression(totalLoadSessions, { repMin, repMax, increment });
+        if (!totalLoadSuggestion) return null;
+
+        // Convert back down to added-load-only before this ever reaches the
+        // UI, since the weight input (and workout_sets.weight on save) must
+        // stay in "added load" terms to match what update_exercise_rank
+        // expects. Clamped at 0 — deload math can drop below bodyweight
+        // alone, but you can't have negative added weight; "remove all
+        // added load" is the floor.
+        const toAddedLoad = (totalWeight) =>
+          totalWeight == null ? null : roundToIncrement(Math.max(0, totalWeight - bodyWeight), increment);
+
+        return {
+          ...totalLoadSuggestion,
+          weight: toAddedLoad(totalLoadSuggestion.weight),
+          previousBestSet: totalLoadSuggestion.previousBestSet
+            ? { ...totalLoadSuggestion.previousBestSet, weight: toAddedLoad(totalLoadSuggestion.previousBestSet.weight) }
+            : undefined,
+          isBodyweightLoad: true, // tells the UI this weight is ADDED load, not total — phrasing differs ("add Xkg" vs "load Xkg")
+        };
+      }
 
       return suggestProgression(sessions, { repMin, repMax, increment });
     } catch (error) {
@@ -435,7 +510,19 @@ export default function Workout() {
       )}</div>
       {exercise.suggestion?.targetReps && (
         <p className="workout-card__progression-hint">
-          {exercise.suggestion.reason === 'progress' && `You should increase the weight by 1 to 2 kg since you hit ${exercise.suggestion.targetReps} reps last time, aim for ${exercise.suggestion.targetReps} reps.`}
+          {exercise.suggestion.reason === 'progress' && exercise.suggestion.isBodyweightLoad && (
+            exercise.suggestion.previousBestSet
+              ? `You hit ${exercise.suggestion.previousBestSet.reps} reps last time. If possible, add ${exercise.suggestion.weight}kg this session and aim for ${exercise.suggestion.targetReps} reps. If not, aim for ${exercise.suggestion.previousBestSet.reps + 1}-${exercise.suggestion.previousBestSet.reps + 2} reps instead.`
+              : `Add ${exercise.suggestion.weight}kg this session — aim for ${exercise.suggestion.targetReps} reps.`
+          )}
+          {exercise.suggestion.reason === 'progress' && !exercise.suggestion.isBodyweightLoad && (
+            exercise.suggestion.previousBestSet
+              ? `You hit ${exercise.suggestion.previousBestSet.reps} reps at ${exercise.suggestion.previousBestSet.weight}kg last time. Increase the weight to ${exercise.suggestion.weight}kg, aim for ${exercise.suggestion.targetReps} reps.`
+              : `Increase the weightup to ${exercise.suggestion.weight}kg and aim for ${exercise.suggestion.targetReps} reps.`
+          )}
+          {exercise.suggestion.reason === 'add-load' && exercise.suggestion.previousBestSet && (
+            `You hit ${exercise.suggestion.previousBestSet.reps} bodyweight reps last time. You should try adding some weight (vest/belt) instead of chasing more reps.`
+          )}
           {exercise.suggestion.reason === 'deload' && `You stalled a few sessions in a row, try easing back, aim for ${exercise.suggestion.targetReps} reps.`}
           {exercise.suggestion.reason === 'repeat' && exercise.suggestion.previousBestSet && (
             exercise.suggestion.previousBestSet.reps >= exercise.suggestion.targetReps

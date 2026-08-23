@@ -38,13 +38,12 @@ export function roundToIncrement(weight, increment = 2.5) {
  */
 
 /**
- * Epley estimated 1RM: weight * (1 + reps/30). NOT currently used by
- * suggestProgression below — an earlier version used this to compare sets
- * across different weights, but that produced unstable/nonsensical targets
- * from low-rep sets far from the working weight (see the note in
- * suggestProgression). Left exported as a general utility in case a future
- * feature (PR detection, cross-exercise strength comparison) needs it —
- * just don't reach for it to compare sets within the same session again.
+ * Epley estimated 1RM: weight * (1 + reps/30). Used below to size a weight
+ * increase proportionally to how far past repMax someone actually got —
+ * NOT to compare sets at different weights within the same session (that
+ * caused an earlier bug, see the note in suggestProgression's repeat
+ * branch). Here it's always applied to a single known weight/reps pair, so
+ * there's no cross-weight extrapolation instability.
  */
 export function estimateOneRepMax(weight, reps) {
   if (!weight || !reps) return 0;
@@ -60,6 +59,18 @@ export function repsToMatchOneRepMax(oneRepMax, atWeight) {
   if (!atWeight) return 0;
   const reps = 30 * (oneRepMax / atWeight - 1);
   return Math.max(0, Math.round(reps));
+}
+
+/**
+ * The other direction: given an estimated 1RM and a target rep count,
+ * what weight would land that many reps? Used to size a weight increase
+ * proportionally to how far past repMax someone actually got, instead of
+ * always adding a flat category increment regardless of overshoot.
+ */
+export function weightToMatchOneRepMax(oneRepMax, atReps) {
+  const denominator = 1 + atReps / 30;
+  if (!denominator) return 0;
+  return oneRepMax / denominator;
 }
 
 /**
@@ -136,9 +147,25 @@ export function suggestProgression(sessions, prefs) {
   const workingWeight = getWorkingWeight(lastSession.sets);
 
   if (didHitTopOfRange(lastSession, repMax)) {
+    // A flat category increment treats "barely hit repMax" and "blew way
+    // past repMax" identically — if someone's rep range tops out at 10 and
+    // they got 20, a flat +2.5kg badly undershoots what they've actually
+    // proven, and they'll likely just blow past the range again next
+    // session. Instead: estimate 1RM from their actual best performance at
+    // the working weight, then solve for the weight that would land them
+    // back at repMin. The flat category increment becomes a FLOOR, not the
+    // answer — never suggest less than it, but scale up when the overshoot
+    // warrants a bigger jump.
+    const setsAtWorkingWeight = lastSession.sets.filter((set) => set.weight === workingWeight);
+    const bestSet = getBestSet(setsAtWorkingWeight);
+    const oneRepMax = estimateOneRepMax(bestSet.weight, bestSet.reps);
+    const scaledWeight = weightToMatchOneRepMax(oneRepMax, repMin);
+    const minimumWeight = workingWeight + increment;
+
     return {
-      weight: roundToIncrement(workingWeight + increment, increment),
+      weight: roundToIncrement(Math.max(minimumWeight, scaledWeight), increment),
       targetReps: repMin,
+      previousBestSet: bestSet, // { weight, reps } — the actual set that triggered the increase, for the UI to reference honestly
       reason: 'progress',
     };
   }

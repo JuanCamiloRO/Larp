@@ -32,7 +32,7 @@ export default function NotificationPanel({ notifications, onClose, onMarkRead }
             <div
               key={n.id}
               className={`notification-item ${n.is_read ? '' : 'unread'}`}
-              onClick={() => onMarkRead(n.id)}
+              onClick={() => { navigate(n.link); onMarkRead(n.id)}}
             >
               <strong>{n.title}</strong>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px' }}>
