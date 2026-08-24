@@ -28,7 +28,7 @@ export default function MacroProgress({ consumed, goals }) {
             </div>
             <div className="macro-bar-track">
               <div
-                className={`macro-bar-fill ${className}${over ? ' is-over' : ''}`}
+                className={`macro-bar-fill ${className}`}
                 style={{ width: `${pct}%` }}
               />
             </div>

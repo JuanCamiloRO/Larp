@@ -10,7 +10,6 @@ import MealScan from '../components/MealScan';
 import FoodSearch from '../components/FoodSearch';
 import LogFoodModal from '../components/LogFoodModal';
 import CalorieRing from '../components/CalorieRing';
-import CalorieGoalEditor from '../components/CalorieGoalEditor';
 import DailyNutritionModal from '../components/DailyNutritionModal';
 import MacroProgress from '../components/MacroProgress';
 import MacroGoalModal from '../components/MacroGoalModal';
@@ -176,7 +175,8 @@ export default function Nutrition() {
           <MacroGoalModal
             calorieGoal={goal}
             initialGoal={macros}
-            onSave={updateMacroGoals}
+            onSaveCalories={updateGoal}
+            onSaveMacros={updateMacroGoals}
             onClose={() => setMacroModalOpen(false)}
           />
         )}

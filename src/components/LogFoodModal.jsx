@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { MEAL_TYPES } from '../hooks/useFoodLogs';
-
+import '../css/food.css';
 const MEAL_LABELS = {
   breakfast: 'Breakfast',
   lunch: 'Lunch',
@@ -87,8 +87,8 @@ export default function LogFoodModal({ food, defaultMeal, onConfirm, onCancel })
         </div>
 
         <div className="modal-actions">
-          <button className="btn-secondary" onClick={onCancel}>Cancel</button>
-          <button className="btn-primary" onClick={handleConfirm}>Add to diary</button>
+          <button className="secondary-btn" onClick={onCancel}>Cancel</button>
+          <button className="secondary-btn" onClick={handleConfirm}>Add to diary</button>
         </div>
       </div>
     </div>

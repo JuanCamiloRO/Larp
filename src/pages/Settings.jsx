@@ -7,7 +7,6 @@ import {
   ShieldCheck,
   UserRound,
   Trash,
-  Contact,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
@@ -160,7 +159,7 @@ export default function Settings() {
           onClick={handleDeleteAccount}
           disabled={deletingAccount}
         >
-          <Contact size={18} />
+          <Trash size={18} />
           {deletingAccount ? 'Deleting account...' : 'Delete account'}
         </button>}*/}
 

@@ -34,7 +34,7 @@ export default function FoodSearch({ onSelectFood }) {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-        <button className="btn-primary food-search-btn" onClick={handleSearch}>
+        <button className="secondary-btn" onClick={handleSearch}>
           Search
         </button>
       </div>

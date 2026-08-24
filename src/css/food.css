@@ -46,10 +46,11 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  overflow-x: hidden;
 }
 
 .food-search-info .follow-name {
+  text-transform: capitalize;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -262,7 +263,7 @@
   margin-top: 20px;
 }
 
-.modal-actions .btn-secondary,
+.modal-actions .secondary-btn,
 .modal-actions .btn-primary {
   flex: 1;
 }
