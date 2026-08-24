@@ -8,6 +8,7 @@ import '../css/home.css';
 export default function WorkoutPostActions({
   postId,
   postOwnerId,
+  postName,
   initialLikeCount = 0,
   initiallyLiked = false,
   commentCount = 0,
@@ -20,6 +21,7 @@ export default function WorkoutPostActions({
   const [saving, setSaving] = useState(false);
 
   async function toggleLike() {
+  
     if (!postId || saving) {
       console.error('Cannot like post: missing postId or request is saving', {
         postId,
@@ -76,7 +78,7 @@ export default function WorkoutPostActions({
             type: 'like',
             title: 'New like',
             actor_avatar_url: profile?.avatar_url || null,
-            body: `${profile?.username || 'Someone'} liked your post`,
+            body: `${profile?.username || 'Someone'} liked your post "${postName}"`,
             reference_id: postId,
           });
 
@@ -84,7 +86,6 @@ export default function WorkoutPostActions({
           console.error('Failed to create like notification:', notificationError);
         }
       } else {
-        console.log({ postOwnerId, userId: user.id, postId })
         const { data: deletedRows, error: deleteNotifError } = await supabase
   .from('notifications')
   .delete()

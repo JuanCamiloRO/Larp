@@ -143,10 +143,10 @@ export default function Nutrition() {
           />
 
 
-          <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '16px' }}>
             <button
               type="button"
-              className="primary-btn"
+              className="secondary-btn"
               onClick={() => setMacroModalOpen(true)}
             >
              Edit Nutrition Goals 

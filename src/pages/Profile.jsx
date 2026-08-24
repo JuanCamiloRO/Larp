@@ -15,7 +15,6 @@ function publicAvatarUrl(key) {
 }
 
 export default function Profile() {
-  console.log(R2_PUBLIC_AVATAR_URL);
   const navigate = useNavigate();
   const { user } = useAuth();
   const fileInputRef = useRef(null);

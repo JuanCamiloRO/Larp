@@ -11,7 +11,6 @@ export function useFoodLookup() {
   const [error, setError] = useState(null);
 
   async function lookupBarcode(barcode) {
-    console.log('Sending to edge function:', barcode, typeof barcode);
     setLoading(true);
     setError(null);
 

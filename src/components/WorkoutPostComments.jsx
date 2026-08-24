@@ -36,6 +36,7 @@ function buildCommentTree(flatComments) {
 export default function WorkoutPostComments({
   postId,
   postOwnerId,
+  postName,
   onClose,
   onCountChange,
 }) {
@@ -160,8 +161,7 @@ export default function WorkoutPostComments({
           type: 'comment',
           title: 'New comment',
           actor_avatar_url: profile?.avatar_url || null,
-          body: `${profile?.username || 'Someone'} commented on your post`,
-          link: data?.id ? `/posts/${postId}` : null,
+          body: `${profile?.username || 'Someone'} commented on your post "${postName}"`,
           reference_id: data?.id,
         });
 
