@@ -57,6 +57,11 @@ export function useFoodLogs(userId, dateStr) {
       protein: food.protein_per_100g != null ? food.protein_per_100g * scale : null,
       carbs: food.carbs_per_100g != null ? food.carbs_per_100g * scale : null,
       fat: food.fat_per_100g != null ? food.fat_per_100g * scale : null,
+      fiber: food.fiber_per_100g != null ? food.fiber_per_100g * scale : null,
+      sugar: food.sugar_per_100g != null ? food.sugar_per_100g * scale : null,
+      saturated_fat: food.saturated_fat_per_100g != null ? food.saturated_fat_per_100g * scale : null,
+      sodium: food.sodium_per_100g != null ? food.sodium_per_100g * scale : null,
+      salt: food.salt_per_100g != null ? food.salt_per_100g * scale : null,
     });
   }
 

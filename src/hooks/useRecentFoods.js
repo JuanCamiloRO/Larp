@@ -19,7 +19,7 @@ export function useRecentFoods(userId, refreshKey, mealType = null) {
 
     let query = supabase
       .from('food_logs')
-      .select('food_barcode, food_name, grams, calories, protein, carbs, fat, created_at, meal_type')
+      .select('food_barcode, food_name, grams, calories, protein, carbs, fat,fiber, sugar, saturated_fat, sodium, salt, created_at, meal_type')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(50);

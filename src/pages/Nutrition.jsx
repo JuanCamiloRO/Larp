@@ -232,7 +232,7 @@ export default function Nutrition() {
             ) : (
               <div className="meal-food-list">
                 {logsByMeal[meal].map((log) => (
-                  <div key={log.id} className="meal-food-row">
+                  <div key={log.id} className="meal-food-row" onClick={() => openFoodModal(log)}>
                     <div className="food-search-info">
                       <span className="follow-name">{log.food_name}</span>
                       <span className="follow-handle">{log.grams}g</span>

@@ -25,9 +25,12 @@ export default function DailyNutritionModal({ logs, goal, macroGoals, dateLabel,
   const fmt = (v, digits = 1) => (v === null ? '—' : Number(v.toFixed(digits)));
 
   const rows = [
-    { label: 'Saturated Fat', value: saturatedFat, unit: 'g', indent: true },
-    { label: 'Fiber', value: fiber, unit: 'g', indent: true },
-    { label: 'Sugar', value: sugar, unit: 'g', indent: true },
+    { label: 'Protein', value: protein, unit: 'g'},
+    { label: 'Carbs', value: carbs, unit: 'g' },
+    { label: 'Fat', value: fat, unit: 'g'},
+    { label: 'Saturated Fat', value: saturatedFat, unit: 'g'},
+    { label: 'Fiber', value: fiber, unit: 'g' },
+    { label: 'Sugar', value: sugar, unit: 'g'},
     { label: 'Sodium', value: sodiumMg, unit: 'mg' },
     { label: 'Salt', value: salt, unit: 'g' },
   ];
@@ -56,45 +59,6 @@ export default function DailyNutritionModal({ logs, goal, macroGoals, dateLabel,
           <p className="subtle" style={{ marginTop: '16px' }}>Nothing logged yet today.</p>
         ) : (
           <>
-            <div className="nutrition-facts-calories">
-              <span>Calories</span>
-              <span className="nutrition-facts-calories-value">{fmt(calories, 0)}</span>
-            </div>
-
-            {goal && (
-              <div className="nutrition-facts-row">
-                <span>Goal</span>
-                <span>{Math.round(goal)} kcal</span>
-              </div>
-            )}
-            {remaining !== null && (
-              <div className="nutrition-facts-row">
-                <span>Remaining</span>
-                <span>{Math.round(remaining)} kcal</span>
-              </div>
-            )}
-
-            <div className="nutrition-facts-macros-row">
-              <MacroPill
-                label="Protein"
-                value={protein}
-                goal={macroGoals?.protein}
-                color="var(--macro-protein, #ff6961)"
-              />
-              <MacroPill
-                label="Carbs"
-                value={carbs}
-                goal={macroGoals?.carbs}
-                color="var(--macro-carbs, #ffb340)"
-              />
-              <MacroPill
-                label="Fat"
-                value={fat}
-                goal={macroGoals?.fat}
-                color="var(--macro-fat, #ff58f4)"
-              />
-              
-            </div>
 
             <div className="nutrition-facts-table">
               {rows.map((row) =>

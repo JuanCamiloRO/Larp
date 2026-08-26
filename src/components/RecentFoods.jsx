@@ -19,6 +19,11 @@ export default function RecentFoods({ recentFoods, loading, onSelectFood }) {
       protein_per_100g: log.protein != null ? log.protein * scale : null,
       carbs_per_100g: log.carbs != null ? log.carbs * scale : null,
       fat_per_100g: log.fat != null ? log.fat * scale : null,
+      fiber_per_100g: log.fiber != null ? log.fiber * scale : null,
+      sugar_per_100g: log.sugar != null ? log.sugar * scale : null,
+      saturated_fat_per_100g: log.saturated_fat != null ? log.saturated_fat * scale : null,
+      sodium_per_100g: log.sodium != null ? log.sodium * scale : null,
+      salt_per_100g: log.salt != null ? log.salt * scale : null,
     };
   }
 
