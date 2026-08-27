@@ -3,6 +3,7 @@ import { supabase } from "../supabase";
 import { useAuth } from "../hooks/useAuth";
 import { useProfile } from "../hooks/useProfile";
 import { useNavigate } from "react-router-dom";
+import { cloneProgramForUser } from "../hooks/usePrograms";
 import "../css/style.css";
 
 const EXPERIENCE_LEVELS = [
@@ -30,6 +31,14 @@ const GENDERS = [
   { value: "male", label: "Male" },
   { value: "female", label: "Female" },
 ];
+
+const PROGRAMS = [
+  { id: "3a4c8d6b-0b3d-4c1c-8d9e-0e0b3d4c1c8d", label: "Full Body", frequency : 2 },
+  { id: "3a4c8d6b-0b3d-4c1c-8d9e-0e0b3d4c1c8d", label: "Full Body 3x", frequency : 3 },
+  { id: "166d0817-beab-426a-aff0-de9042e7a905", label: "Upper / Lower", frequency : 4 },
+  { id: "d3a4c8d6b-0b3d-4c1c-8d9e-0e0b3d4c1c8d", label: "Upper / Lower / Sharms", frequency : 5 },
+  { id: "4f497fda-6bdb-4d2f-82ca-b86728585d25", label: "Push Pull Legs", frequency : 6 },
+]
 
 function calculateMaintenanceCalories({ age, weight, height, gender, experience, goal, frequency }) {
   const parsedAge = Number(age);
@@ -125,8 +134,15 @@ export default function OnBoardingSignUp() {
           frequency: Number(data.frequency),
           daily_calorie_goal: maintenanceCalories,
           onboarding_completed: true,
+          carbs_goal: (maintenanceCalories - Number(data.weight) * 2 * 4 - Number(data.weight) * 1.1 * 9)/4,
+          protein_goal: Number(data.weight) * 2,
+          fat_goal: Number(data.weight) * 1.1
         })
         .eq("id", user.id);
+
+        const matchedProgram = PROGRAMS.find((p) => p.frequency === Number(data.frequency));
+        console.log("matchedProgram", matchedProgram);
+        cloneProgramForUser(matchedProgram.id,user.id);
 
       if (error) throw error;
       navigate("/");
@@ -156,7 +172,7 @@ export default function OnBoardingSignUp() {
       case 4: return (<><h2 style={titleStyle}>How tall are you?</h2><p style={descStyle}>We'll use this to calculate your BMI and proportions.</p><div style={{ position: "relative" }}><input type="number" inputMode="decimal" placeholder="175" value={data.height} onChange={(e) => update("height", e.target.value)} style={inputStyle} /><span style={{ position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.3)", fontSize: 14, fontWeight: 700 }}>cm</span></div></>);
       case 5: return (<><h2 style={titleStyle}>What's your level?</h2><p style={descStyle}>Be honest, this affects your recommendations.</p><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{EXPERIENCE_LEVELS.map((lvl) => (<button key={lvl.value} onClick={() => update("experience", lvl.value)} style={{ padding: "18px 20px", borderRadius: 14, border: data.experience === lvl.value ? "1px solid #ff3b30" : "1px solid rgba(255,255,255,0.08)", background: data.experience === lvl.value ? "rgba(255,59,48,0.1)" : "rgba(255,255,255,0.03)", color: "#fff", textAlign: "left", cursor: "pointer" }}><span style={{ display: "block", fontSize: 15, fontWeight: 800 }}>{lvl.label}</span><span style={{ display: "block", fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>{lvl.desc}</span></button>))}</div></>);
       case 6: return (<><h2 style={titleStyle}>What's your goal?</h2><p style={descStyle}>We'll personalize your plan based on this.</p><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>{GOALS.map((g) => (<button key={g.value} onClick={() => update("goal", g.value)} style={{ padding: "24px 12px", borderRadius: 14, border: data.goal === g.value ? "1px solid #ff3b30" : "1px solid rgba(255,255,255,0.08)", background: data.goal === g.value ? "rgba(255,59,48,0.1)" : "rgba(255,255,255,0.03)", color: "#fff", textAlign: "center", cursor: "pointer" }}><span style={{ fontSize: 28, display: "block", marginBottom: 6 }}>{g.icon}</span><span style={{ fontSize: 14, fontWeight: 800 }}>{g.label}</span></button>))}</div></>);
-      case 7: return (<><h2 style={titleStyle}>How many days a week do you train?</h2><p style={descStyle}>We'll suggest the optimal routine for you.</p><p style={{ ...descStyle, marginBottom: 12 }}>Based on your info, we'll set your calorie goal to about {calculateMaintenanceCalories(data) || "..."} kcal/day. We assume an average of 10k steps a day.</p><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{FREQUENCIES.map((f) => (<button key={f.value} onClick={() => update("frequency", f.value)} style={{ padding: "16px 20px", borderRadius: 14, border: Number(data.frequency) === f.value ? "1px solid #ff3b30" : "1px solid rgba(255,255,255,0.08)", background: Number(data.frequency) === f.value ? "rgba(255,59,48,0.1)" : "rgba(255,255,255,0.03)", color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}><span style={{ fontSize: 15, fontWeight: 800 }}>{f.label} <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, fontWeight: 500 }}>/ week</span></span><span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{f.desc}</span></button>))}</div></>);
+      case 7: return (<><h2 style={titleStyle}>How many days a week do you train?</h2><p style={descStyle}>We'll suggest the optimal routine for you. For your experience level and {data?.frequency || "..."} days a week, best program is {PROGRAMS.map((p) => (p.frequency==data.frequency ? p.label : ""))}. </p><p style={{ ...descStyle, marginBottom: 12 }}>Based on your info, we'll set your calorie goal to about {calculateMaintenanceCalories(data) || "..."} kcal/day. We assume an average of 10k steps a day.</p><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{FREQUENCIES.map((f) => (<button key={f.value} onClick={() => update("frequency", f.value)} style={{ padding: "16px 20px", borderRadius: 14, border: Number(data.frequency) === f.value ? "1px solid #ff3b30" : "1px solid rgba(255,255,255,0.08)", background: Number(data.frequency) === f.value ? "rgba(255,59,48,0.1)" : "rgba(255,255,255,0.03)", color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}><span style={{ fontSize: 15, fontWeight: 800 }}>{f.label} <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, fontWeight: 500 }}>/ week</span></span><span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{f.desc}</span></button>))}</div></>);
       default: return null;
     }
   };

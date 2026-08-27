@@ -142,7 +142,7 @@ export default function Nutrition() {
           />
 
 
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '16px', gap: '16px'}}>
             <button
               type="button"
               className="secondary-btn"
@@ -150,6 +150,14 @@ export default function Nutrition() {
             >
              Edit Nutrition Goals 
             </button>
+            <button
+    type="button"
+    className="secondary-btn"
+    style={{ marginTop: '24px', marginBottom: '24px' }}
+    onClick={() => setDailyNutritionOpen(true)}
+  >
+    See your daily nutrition
+  </button>
             
           </div>
         </div>
@@ -256,14 +264,7 @@ export default function Nutrition() {
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <button
-    type="button"
-    className="secondary-btn"
-    style={{ marginTop: '24px', marginBottom: '24px' }}
-    onClick={() => setDailyNutritionOpen(true)}
-  >
-    See your daily nutrition
-  </button>
+        
   </div>
 
         <WeightProgress userId={user?.id} />

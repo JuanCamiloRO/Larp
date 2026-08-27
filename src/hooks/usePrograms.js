@@ -38,8 +38,12 @@ export async function cloneProgramForUser(programId, userId) {
     return { program: null, error: "Could not add this program." };
   }
 
-  // 3. Clone each routine + its exercises, then link into the new program
+  // 3. Clone each routine + its exercises, then link into the new program.
+  // If the same source routine appears in multiple slots (e.g. reused on two
+  // different days), only clone it once and reuse the new routine id for
+  // every slot that referenced it.
   const createdRoutineIds = [];
+  const clonedRoutineIdBySourceId = new Map();
 
   try {
     const sortedSlots = [...(source.program_routines || [])].sort(
@@ -50,37 +54,46 @@ export async function cloneProgramForUser(programId, userId) {
       const sourceRoutine = slot.routines;
       if (!sourceRoutine) continue; // original routine was deleted, skip the slot
 
-      const { data: newRoutine, error: routineError } = await supabase
-        .from("routines")
-        .insert({
-          user_id: userId,
-          name: sourceRoutine.name,
-          is_public: false,
-          source_routine_id: sourceRoutine.id,
-        })
-        .select()
-        .single();
+      let newRoutineId = clonedRoutineIdBySourceId.get(sourceRoutine.id);
 
-      if (routineError) throw routineError;
-      createdRoutineIds.push(newRoutine.id);
+      if (!newRoutineId) {
+        const { data: newRoutine, error: routineError } = await supabase
+          .from("routines")
+          .insert({
+            user_id: userId,
+            name: sourceRoutine.name,
+            is_public: false,
+            source_routine_id: sourceRoutine.id,
+          })
+          .select()
+          .single();
 
-      const exerciseRows = (sourceRoutine.routine_exercises || []).map((ex) => {
-        const { id, routine_id, ...rest } = ex; // drop old identity, keep the rest
-        return { ...rest, routine_id: newRoutine.id };
-      });
+        if (routineError) throw routineError;
 
-      if (exerciseRows.length) {
-        const { error: exercisesError } = await supabase
-          .from("routine_exercises")
-          .insert(exerciseRows);
-        if (exercisesError) throw exercisesError;
+        newRoutineId = newRoutine.id;
+        clonedRoutineIdBySourceId.set(sourceRoutine.id, newRoutineId);
+        createdRoutineIds.push(newRoutineId);
+
+        const exerciseRows = (sourceRoutine.routine_exercises || []).map((ex) => {
+          const { id, routine_id, ...rest } = ex; // drop old identity, keep the rest
+          return { ...rest, routine_id: newRoutineId };
+        });
+
+        if (exerciseRows.length) {
+          const { error: exercisesError } = await supabase
+            .from("routine_exercises")
+            .insert(exerciseRows);
+          if (exercisesError) throw exercisesError;
+        }
       }
 
+      // Always create the slot, even for a routine we've already cloned,
+      // so the schedule still shows it on every day it originally appeared.
       const { error: slotError } = await supabase
         .from("program_routines")
         .insert({
           program_id: newProgram.id,
-          routine_id: newRoutine.id,
+          routine_id: newRoutineId,
           day_label: slot.day_label,
           position: slot.position,
         });
@@ -120,8 +133,6 @@ export function usePrograms(userId, refreshKey = 0) {
       `)
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
-
-      
 
     if (queryError) {
       console.error("Failed to load programs:", queryError);
