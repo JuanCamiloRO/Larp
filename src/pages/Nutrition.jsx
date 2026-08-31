@@ -16,6 +16,7 @@ import MacroGoalModal from '../components/MacroGoalModal';
 import RecentFoods from '../components/RecentFoods';
 import ScanBarcodeButton from '../components/ScanBarcodeButton';
 import WeightProgress from '../components/WeightProgress';
+import MealStats from '../components/MealStats';
 import '../css/nutrition.css';
 
 const MEAL_LABELS = {
@@ -54,6 +55,7 @@ export default function Nutrition() {
   const [mealScanOpen, setMealScanOpen] = useState(false);
   const [macroModalOpen, setMacroModalOpen] = useState(false);
   const [dailyNutritionOpen, setDailyNutritionOpen] = useState(false);
+  const [selectedMeal, setSelectedMeal] = useState(null); // NEW
 
   function changeDay(offset) {
     const next = new Date(currentDate);
@@ -195,7 +197,7 @@ export default function Nutrition() {
           <div key={meal} className="meal-section">
             <div className="meal-section-header">
               <div className="meal-section-title">
-                <span className="follow-name">{MEAL_LABELS[meal]}</span>
+                <span className="follow-name" onClick={() => setSelectedMeal(meal)}>{MEAL_LABELS[meal]}</span>
                 <span className="meal-kcal">{Math.round(mealCalories(logsByMeal[meal]))} kcal</span>
               </div>
 
@@ -223,10 +225,20 @@ export default function Nutrition() {
                   aria-label={searchOpenForMeal === meal ? 'Close add food' : `Add food to ${MEAL_LABELS[meal]}`}
                   onClick={() => toggleFoodSearch(meal)}
                 >
+                  
                   {searchOpenForMeal === meal ? <X size={17} /> : <Plus size={17} />}
                 </button>
               </div>
             </div>
+
+            {selectedMeal && (
+  <MealStats
+    logsByMeal={logsByMeal}
+    selectedMeal={selectedMeal}
+    mealLabel={MEAL_LABELS[selectedMeal]}
+    onClose={() => setSelectedMeal(null)}
+  />
+)}
 
             {searchOpenForMeal === meal && (
               <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '10px' }}>

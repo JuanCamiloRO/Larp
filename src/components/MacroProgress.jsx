@@ -6,6 +6,8 @@ const MACROS = [
   { key: 'fat', label: 'Fat', className: 'macro-bar--fat' },
 ];
 
+
+
 export default function MacroProgress({ consumed, goals }) {
   const visible = MACROS.filter((m) => goals?.[m.key] != null && goals[m.key] > 0);
   if (visible.length === 0) return null;
