@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import DailyChallenges from './pages/DailyChallenges.jsx';
 import Discover from './pages/Discover.jsx';
 import ExploreRoutines from './components/ExploreRoutines.jsx';
 import ExplorePrograms from './components/ExplorePrograms.jsx';
@@ -31,6 +32,7 @@ export default function App() {
     
     <Routes>
       <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+      <Route path="/challenges" element={<ProtectedRoute><DailyChallenges /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/discover" element={<ProtectedRoute><Discover /></ProtectedRoute>} />
       <Route path="/routines" element={<ProtectedRoute><ExploreRoutines /></ProtectedRoute>} />

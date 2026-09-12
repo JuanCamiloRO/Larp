@@ -1,0 +1,328 @@
+.daily-challenges {
+  padding: max(10px, env(safe-area-inset-top)) 16px calc(112px + env(safe-area-inset-bottom));
+}
+
+.daily-challenges h1 {
+  margin: 4px 0 20px;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.daily-challenges p {
+  margin: 0 0 16px;
+  color: var(--dash-text-dim);
+  font-size: 13.5px;
+}
+
+/* ============ Loading / error states ============ */
+.daily-challenges-loading {
+  margin: 30px 16px 0;
+  color: var(--dash-text-dim);
+  font-size: 13.5px;
+  text-align: center;
+}
+
+.daily-challenges-error {
+  margin: 30px 16px 0;
+  padding: 22px 18px;
+  border: 1px solid rgba(255, 59, 48, 0.25);
+  border-radius: 16px;
+  background: rgba(255, 59, 48, 0.06);
+  color: #ff9d97;
+  font-size: 13.5px;
+  text-align: center;
+}
+
+/* ============ Challenge list ============ */
+.challenge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.challenge-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--dash-border);
+  border-radius: 16px;
+  background: var(--dash-surface-alt);
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    transform 120ms ease;
+}
+
+.challenge-card:active {
+  transform: scale(0.985);
+}
+
+.challenge-card h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.1px;
+}
+
+.challenge-card p {
+  margin: 0;
+  color: var(--dash-text-dim);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.challenge-meta {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.challenge-card button {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 59, 48, 0.25);
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--dash-red) 0%, var(--dash-red-dark) 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease;
+}
+
+.challenge-card button:hover {
+  background: linear-gradient(180deg, #ff4d43 0%, var(--dash-red) 100%);
+}
+
+.challenge-card button:disabled {
+  border-color: var(--dash-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.35);
+  cursor: default;
+}
+
+/* ============ Completed state ============ */
+.challenge-card.completed {
+  border-color: rgba(48, 209, 88, 0.25);
+  background: rgba(48, 209, 88, 0.05);
+}
+
+.challenge-card.completed h3 {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.challenge-card.completed .challenge-meta {
+  color: rgba(48, 209, 88, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .challenge-card,
+  .challenge-card button {
+    transition: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .daily-challenges h1 {
+    font-size: 18px;
+  }
+
+  .challenge-card h3 {
+    font-size: 14px;
+  }
+}
+
+.challenge-progress {
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--dash-border);
+  border-radius: 16px;
+  background: var(--dash-surface-alt);
+}
+
+.challenge-progress__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.challenge-progress__level {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.1px;
+}
+
+.challenge-progress__xp {
+  color: var(--dash-text-dim);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.challenge-progress__bar {
+  overflow: hidden;
+  width: 100%;
+  height: 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.challenge-progress__fill {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--dash-red) 0%, var(--dash-red-dark) 100%);
+  transition: width 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .challenge-progress__fill {
+    transition: none;
+  }
+}
+
+.challenge-card__action {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.confetti-burst {
+  position: absolute;
+  top: 50%;
+  left: 20px;
+  z-index: 5;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 10px;
+  border-radius: 2px;
+  opacity: 0;
+  transform: translate(0, 0) rotate(0deg);
+  animation: confetti-fly 750ms var(--delay) ease-out forwards;
+}
+
+@keyframes confetti-fly {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) rotate(360deg) scale(0.4);
+  }
+}
+
+/* ============ Progress bar shake (pre level-up) ============ */
+.challenge-progress--shake {
+  animation: progress-shake 500ms ease-in-out;
+}
+
+@keyframes progress-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px) rotate(-0.5deg); }
+  40% { transform: translateX(4px) rotate(0.5deg); }
+  60% { transform: translateX(-3px) rotate(-0.4deg); }
+  80% { transform: translateX(3px) rotate(0.4deg); }
+}
+
+/* ============ Level up overlay ============ */
+.level-up-overlay {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  animation: overlay-fade-in 200ms ease;
+}
+
+.level-up-badge {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 28px 40px;
+  border: 1px solid rgba(255, 214, 10, 0.35);
+  border-radius: 20px;
+  background: linear-gradient(180deg, var(--dash-surface-alt) 0%, var(--dash-surface) 100%);
+  box-shadow: 0 8px 40px rgba(255, 59, 48, 0.25);
+}
+
+.level-up-badge--shake {
+  animation: level-badge-shake 500ms ease-in-out;
+}
+
+.level-up-badge--explode {
+  animation: level-badge-explode 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes level-badge-shake {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  15% { transform: scale(1.02) rotate(-2deg); }
+  30% { transform: scale(1.02) rotate(2deg); }
+  45% { transform: scale(1.04) rotate(-3deg); }
+  60% { transform: scale(1.04) rotate(3deg); }
+  75% { transform: scale(1.06) rotate(-2deg); }
+  90% { transform: scale(1.06) rotate(1deg); }
+}
+
+@keyframes level-badge-explode {
+  0% { transform: scale(1.06); opacity: 1; }
+  40% { transform: scale(1.35); opacity: 1; }
+  100% { transform: scale(1.15); opacity: 1; }
+}
+
+.level-up-badge__label {
+  color: #ffd60a;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.level-up-badge__level {
+  color: #fff;
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  text-shadow: 0 4px 20px rgba(255, 59, 48, 0.5);
+}
+
+@keyframes overlay-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti-piece,
+  .challenge-progress--shake,
+  .level-up-badge--shake,
+  .level-up-badge--explode,
+  .level-up-overlay {
+    animation: none;
+  }
+}
