@@ -228,6 +228,7 @@ export default function Nutrition() {
                   
                   {searchOpenForMeal === meal ? <X size={17} /> : <Plus size={17} />}
                 </button>
+                
               </div>
             </div>
 
