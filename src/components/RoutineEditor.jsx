@@ -26,7 +26,13 @@ export default function RoutineEditor() {
   }
 
   function addExercise(exercise) {
-    if (routineExercises.some((item) => item.exercise.id === exercise.id)) {
+    if (
+  routineExercises.some(
+    (item) =>
+      item.exercise.id === exercise.id &&
+      Boolean(item.exercise.isCustom) === Boolean(exercise.isCustom)
+  )
+)  {
       setError(`${exercise.name} is already in this routine.`);
       setShowPicker(false);
       return;
@@ -113,12 +119,17 @@ export default function RoutineEditor() {
       return;
     }
 
-    const rows = routineExercises.map((item, position) => ({
-      routine_id: routine.id,
-      exercise_id: item.exercise.id,
-      position,
-      default_sets: item.defaultSets,
-    }));
+    const rows = routineExercises.map((item, position) => {
+  const isCustom = item.exercise.source === 'custom';
+
+  return {
+    routine_id: routine.id,
+    exercise_id: isCustom ? null : item.exercise.id,
+    custom_exercise_id: isCustom ? item.exercise.id : null,
+    position,
+    default_sets: item.defaultSets,
+  };
+});
 
     const { error: exercisesError } = await supabase
       .from('routine_exercises')

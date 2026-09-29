@@ -247,50 +247,102 @@ export default function Workout() {
   function toggleProgram(programId) { setExpandedProgramId((current) => current === programId ? null : programId); }
 
   async function startRoutine(routine) {
-    setStartingRoutineId(routine.id);
-    setRoutineError('');
-    let fullRoutine = routine;
-    const hasExerciseData = (routine.routine_exercises || []).some((item) => item.exercises && Object.keys(item.exercises).length > 1);
-    if (!hasExerciseData) {
-      const { data, error } = await supabase.from('routines')
-        .select('id, name, routine_exercises(position, default_sets, exercises(*))')
-        .eq('id', routine.id).single();
-      if (error || !data) {
-        console.error('Load routine for start:', error);
-        setRoutineError('Could not load this routine.');
-        setStartingRoutineId(null);
-        return;
-      }
-      fullRoutine = data;
-    }
-    const items = [...(fullRoutine.routine_exercises || [])]
-      .filter((item) => item.exercises).sort((a, b) => a.position - b.position);
-    if (!items.length) {
-      setRoutineError('This routine has no exercises yet.');
-      setStartingRoutineId(null);
-      return;
-    }
-    try {
-      const nextExercises = await Promise.all(items.map(async (item) => {
-        const normalized = { ...item.exercises, source: 'catalogue' };
-        const previousSets = await getPreviousSetsForExercise(normalized);
-        const previousNote = await getPreviousNoteForExercise(normalized.id);
-        const suggestion = await getProgressionSuggestion(normalized.id);
-        return {
-          ...normalized, previousSets, note: '', previousNote, suggestion,
-          sets: Array.from({ length: item.default_sets }, (_, index) => index === 0
-            ? createSetFromSuggestion(suggestion, previousSets[1], normalized)
-            : createSetFromPrevious(previousSets[index + 1], normalized)),
-        };
-      }));
-      resetWorkout();
-      setName(fullRoutine.name);
-      setStartedAt(new Date());
-      setExercises(nextExercises);
-      setShowWorkoutMenu(false);
-    } catch (error) { console.error('Start routine:', error); setRoutineError('Could not start this routine.'); }
-    finally { setStartingRoutineId(null); }
+  setStartingRoutineId(routine.id);
+  setRoutineError('');
+
+ const { data: fullRoutine, error } = await supabase
+  .from('routines')
+  .select(`
+    id,
+    name,
+    routine_exercises(
+      position,
+      default_sets,
+      exercises(*),
+      custom_exercises(*)
+    )
+  `)
+  .eq('id', routine.id)
+  .single();
+
+if (error || !fullRoutine) {
+  console.error('Load routine for start:', error);
+  setRoutineError('Could not load this routine.');
+  setStartingRoutineId(null);
+  return;
+}
+
+  const items = [...(fullRoutine.routine_exercises || [])]
+    .filter((item) => item.exercises || item.custom_exercises)
+    .sort((a, b) => a.position - b.position);
+
+  if (!items.length) {
+    setRoutineError('This routine has no exercises yet.');
+    setStartingRoutineId(null);
+    return;
   }
+
+  try {
+    const nextExercises = await Promise.all(
+      items.map(async (item) => {
+        const isCustom = Boolean(item.custom_exercises);
+
+        const normalized = isCustom
+          ? {
+              ...item.custom_exercises,
+              source: 'custom',
+            }
+          : {
+              ...item.exercises,
+              source: 'catalogue',
+            };
+
+        const previousSets = await getPreviousSetsForExercise(normalized);
+
+        const previousNote = isCustom
+          ? ''
+          : await getPreviousNoteForExercise(normalized.id);
+
+        const suggestion = isCustom
+          ? null
+          : await getProgressionSuggestion(normalized.id);
+
+        return {
+          ...normalized,
+          previousSets,
+          note: '',
+          previousNote,
+          suggestion,
+          sets: Array.from(
+            { length: item.default_sets },
+            (_, index) =>
+              index === 0
+                ? createSetFromSuggestion(
+                    suggestion,
+                    previousSets[1],
+                    normalized
+                  )
+                : createSetFromPrevious(
+                    previousSets[index + 1],
+                    normalized
+                  )
+          ),
+        };
+      })
+    );
+
+    resetWorkout();
+    setName(fullRoutine.name);
+    setStartedAt(new Date());
+    setExercises(nextExercises);
+    setShowWorkoutMenu(false);
+  } catch (error) {
+    console.error('Start routine:', error);
+    setRoutineError('Could not start this routine.');
+  } finally {
+    setStartingRoutineId(null);
+  }
+}
 
   // --- Editing exercise rows and sets ---
   async function removeExercise(index) {
